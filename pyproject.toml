@@ -1,0 +1,11 @@
+[project]
+name = "ai-assistant-for-pc"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "psutil>=7.2.2",
+    "pywin32>=311",
+    "websockets>=16.0",
+]
