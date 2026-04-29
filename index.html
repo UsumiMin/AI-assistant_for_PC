@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: transparent;
+    }
+
+    #gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    .overlay {
+      position: relative;
+      z-index: 1;
+
+      width: 100%;
+      height: 100vh;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 100px;
+
+      background: rgba(250, 250, 255, 0.492);
+      backdrop-filter: blur(10px);
+      color: white;
+    }
+
+    .ai-assistant {
+      width: 448px;
+      height: 565px;
+      background: rgb(245, 245, 245);
+      border-radius: 20px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    #avatarCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .button_box {
+      width: 460px;
+
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    .button {
+      width: 100%;
+      height: 88px;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      padding: 20 96px;
+
+      background: rgb(255, 250, 250);
+      border-radius: 20px;
+      cursor: pointer;
+
+      font-size: 20px;
+      color: rgb(28, 39, 76);
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .button_icon {
+      width: 55px;
+      height: 55px;
+
+      flex-shrink: 0;
+
+      transition: filter 0.2s ease;
+    }
+
+    .button:hover {
+      color:rgb(35, 51, 101);
+      transform: translateY(-3px);
+      filter: brightness(1.08);
+    }
+
+    .button:hover .button_icon {
+      filter: brightness(1.5)
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="gradient"></canvas>
+
+  <div class="overlay">
+    <div class="ai-assistant">
+      <canvas id="avatarCanvas"></canvas>
+    </div>
+
+    <div class="button_box">
+      <div class="button_box">
+        <div class="button">
+          <img class="button_icon" src="./sources/icons/settings.svg" alt="">
+          <span>Настройки</span>
+        </div>
+
+        <div class="button">
+          <img class="button_icon" src="./sources/icons/custom.svg" alt="">
+          <span>Кастомизация</span>
+        </div>
+
+        <div class="button">
+          <img class="button_icon" src="./sources/icons/log.svg" alt="">
+          <span>Лог действий</span>
+        </div>
+      </div>
+  </div>
+
+  <script src="./node_modules/pixi.js/dist/pixi.min.js"></script>
+  <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+  <script src="./node_modules/pixi-live2d-display/dist/cubism4.min.js"></script>
+  <script src="./something.js"></script>
+  <script type="module" src="./design.js"></script>
+  <script src="./avatar.js"></script>
+</body>
+</html>
