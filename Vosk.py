@@ -1,3 +1,5 @@
+import asyncio
+from collections.abc import AsyncIterable
 import queue, sys, json, os, zipfile, urllib.request
 import sounddevice as sd
 from vosk import Model, KaldiRecognizer
@@ -22,6 +24,36 @@ def download_model():
     os.remove(zip_path)
     print("Модель загружена!")
     return model_path
+
+
+async def async_speech_to_text_gen() -> AsyncIterable:
+    model = Model(download_model())
+    rec = KaldiRecognizer(model, SAMPLE_RATE)
+    q = asyncio.Queue()
+
+    loop = asyncio.get_event_loop()
+
+    def callback(indata, frames, time, status) -> None:
+        """This is called (from a separate thread) for each audio block."""
+        if status:
+            print(status, file=sys.stderr)
+        # Use call_soon_threadsafe to put data into the async queue
+        loop.call_soon_threadsafe(q.put_nowait, bytes(indata))
+
+    with sd.RawInputStream(
+        samplerate=SAMPLE_RATE,
+        blocksize=8000,
+        dtype='int16',
+        channels=1,
+        callback=callback
+    ):
+        while True:
+            data = await q.get()
+            if rec.AcceptWaveform(data):
+                text = json.loads(rec.Result())['text']
+                if text:
+                    yield text
+
 
 def main():
     model = Model(download_model())
