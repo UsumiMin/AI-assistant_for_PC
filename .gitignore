@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+vosk-model*/
+model.zip
 __pycache__/
 *.py[codz]
 *$py.class
