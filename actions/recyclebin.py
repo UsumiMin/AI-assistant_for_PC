@@ -8,7 +8,13 @@ logger = logging.getLogger(__name__)
 
 def emptyRecycleBin() -> None:
     try:
-        shell.SHEmptyRecycleBin(0, '', shellcon.SHERB_NOCONFIRMATION)
+        shell.SHEmptyRecycleBin(
+            0,
+            '',
+            shellcon.SHERB_NOCONFIRMATION
+            | shellcon.SHERB_NOPROGRESSUI
+            | shellcon.SHERB_NOSOUND,
+        )
     except pywintypes.com_error:
         logger.info('Recycle bin is already empty')
 
