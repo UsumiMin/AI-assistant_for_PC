@@ -45,8 +45,6 @@ class WebsocketConnectionHandler:
         sender_task: asyncio.Task[None] | None = None
 
         try:
-            # Если уже есть активное соединение
-            # мы принудительно закрываем его, чтобы дать дорогу новому подключению
             if self._active_connection is not None:
                 logger.info('Поступило новое подключение. Закрываем предыдущую сессию...')
                 await self._active_connection.close(reason='Replaced by new connection')
@@ -82,8 +80,6 @@ class WebsocketConnectionHandler:
                 with suppress(asyncio.CancelledError):
                     await sender_task
 
-            # Обнуляем активное соединение только в том случае, если закрылось 
-            # именно текущее соединение, а не старое, вытесненное новым
             if self._active_connection == connection:
                 self._active_connection = None
 

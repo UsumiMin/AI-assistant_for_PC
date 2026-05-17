@@ -50,7 +50,36 @@
       border-radius: 20px;
       overflow: hidden;
       flex-shrink: 0;
+      position: relative;
     }
+
+    #answerOverlay {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.92);
+      color: rgb(28, 39, 76);
+      border-radius: 14px;
+      font-size: 16px;
+      line-height: 1.25;
+      max-height: 40%;
+      overflow: auto;
+      z-index: 5;
+
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      pointer-events: none;
+      white-space: pre-wrap;
+    }
+
+    #answerOverlay.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
 
     #avatarCanvas {
       width: 100%;
@@ -112,7 +141,9 @@
   <div class="overlay">
     <div class="ai-assistant">
       <canvas id="avatarCanvas"></canvas>
+      <div id="answerOverlay"></div>
     </div>
+
 
     <div class="button_box">
       <div class="button_box">

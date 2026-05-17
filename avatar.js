@@ -20,9 +20,30 @@
 
   let model = null;
   let pendingAction = null;
-  let activeEmotion = null; // Хранит текущую активную эмоцию ('happy', 'sad', 'processing' или null)
+  let activeEmotion = null;
+
+  let hideAnswerTimeout = null;
+
+  function showAnswer(text) {
+    try {
+      const overlay = document.getElementById('answerOverlay');
+      if (!overlay) return;
+
+      const safeText = typeof text === 'string' ? text : String(text ?? '');
+      overlay.textContent = safeText;
+      overlay.classList.add('visible');
+
+      clearTimeout(hideAnswerTimeout);
+      hideAnswerTimeout = setTimeout(() => {
+        overlay.classList.remove('visible');
+      }, 3500);
+    } catch (e) {
+      console.warn('[avatar] showAnswer failed:', e);
+    }
+  }
 
   function applyEmotion(emotionName) {
+
     if (!model) {
       pendingAction = emotionName;
       return;
@@ -31,7 +52,6 @@
     activeEmotion = emotionName;
     console.log(`[avatar] ---> АКТИВИРОВАНА ЭМОЦИЯ: ${emotionName} <---`);
 
-    // Таймер сброса эмоции обратно в дефолтное состояние через 3 секунды
     clearTimeout(app.__expressionTimeout);
     app.__expressionTimeout = setTimeout(() => {
       activeEmotion = null;
@@ -44,10 +64,15 @@
       const msg = typeof raw === 'string' ? JSON.parse(raw) : JSON.parse(raw.toString());
       console.log('[avatar] handleServerMessage parsed:', msg);
       
-      // Считываем эмоцию, пришедшую от сервера
+      
       if (msg?.emotion) {
         applyEmotion(msg.emotion);
       }
+
+      if (msg?.answer) {
+        showAnswer(msg.answer);
+      }
+
     } catch (e) {
       console.warn('[avatar] handleServerMessage failed to parse:', raw, e);
     }
@@ -68,42 +93,35 @@
 
     console.log('Live2D model loaded successfully');
 
-    // Главный тикер рендеринга PIXI — гарантирует, что параметры не затрутся анимацией покоя
     app.ticker.add(() => {
       const coreModel = model?.internalModel?.coreModel;
       if (!coreModel) return;
 
       if (activeEmotion === 'happy') {
         try {
-          // Улыбка с открытым ртом
           coreModel.setParameterValueById('ParamA', 0.6); // Приоткрываем рот (звук "А")
           coreModel.setParameterValueById('ParamMouthUp', 1); // Тянем уголки губ вверх
           coreModel.setParameterValueById('ParamMouthDown', 0);
 
-          // Радостный прищур глаз и легкий румянец
           coreModel.setParameterValueById('ParamEyeLSmile', 1);
           coreModel.setParameterValueById('ParamEyeRSmile', 1);
           coreModel.setParameterValueById('ParamCheek', 0.5);
 
-          // Брови в нейтрально-приподнятом положении
           coreModel.setParameterValueById('ParamBrowLForm', 0);
           coreModel.setParameterValueById('ParamBrowRForm', 0);
           coreModel.setParameterValueById('ParamBrowLAngle', 0);
           coreModel.setParameterValueById('ParamBrowRAngle', 0);
 
-          // Глаза остаются открытыми, но теплыми за счет Smile-параметров
           coreModel.setParameterValueById('ParamEyeLOpen', 1);
           coreModel.setParameterValueById('ParamEyeROpen', 1);
         } catch (e) {}
 
       } else if (activeEmotion === 'sad') {
         try {
-          // Грусть: рот закрыт, уголки опущены вниз
           coreModel.setParameterValueById('ParamA', 0);
           coreModel.setParameterValueById('ParamMouthUp', 0);
           coreModel.setParameterValueById('ParamMouthDown', 1);
 
-          // Брови домиком (значения -1 взяты на основе exp_06.json)
           coreModel.setParameterValueById('ParamBrowLForm', -1);
           coreModel.setParameterValueById('ParamBrowRForm', -1);
           coreModel.setParameterValueById('ParamBrowLAngle', -1);
@@ -116,13 +134,11 @@
 
       } else if (activeEmotion === 'processing') {
         try {
-          // Ожидание/Думает: рот слегка приоткрыт округлой формой "О"
           coreModel.setParameterValueById('ParamO', 0.4);
           coreModel.setParameterValueById('ParamA', 0);
           coreModel.setParameterValueById('ParamMouthUp', 0);
           coreModel.setParameterValueById('ParamMouthDown', 0);
 
-          // Отводим взгляд зрачков влево
           coreModel.setParameterValueById('ParamEyeBallX', -0.5);
 
           coreModel.setParameterValueById('ParamEyeLSmile', 0);
@@ -133,7 +149,6 @@
         } catch (e) {}
 
       } else {
-        // ПОЛНЫЙ СБРОС В ДЕФОЛТ (Когда нет активных команд от сервера)
         try {
           coreModel.setParameterValueById('ParamA', 0);
           coreModel.setParameterValueById('ParamO', 0);
@@ -166,7 +181,6 @@
     return;
   }
 
-  // Настройка WebSocket подключения
   try {
     if (window.__avatarWs) {
       console.log('[avatar] Closing old global WebSocket connection...');
