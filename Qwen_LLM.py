@@ -1,14 +1,25 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from llama_cpp import Llama
 import json
+import os
+import sys
 
 class SmartModel:
-    def __init__(self, apps_list, model_name="Qwen/Qwen2.5-1.5B-Instruct"):
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, torch_dtype="auto", device_map="auto"
-        )
+    def __init__(self, apps_list,  model_name="Qwen/Qwen2.5-1.5B-Instruct-GGUF", model_filename="qwen2.5-1.5b-instruct-q4_k_m.gguf"):
+        self.apps_list = apps_list
         self.apps_string = ", ".join(apps_list)
+        self.model_dir = os.path.join(os.path.dirname(__file__), "models")
+        self.model_path = os.path.join(self.model_dir, model_filename)
+        
+        # Автоматически загружаем модель, если её нет
+        if not os.path.exists(self.model_path):
+            self._download_model(model_name, model_filename)
+        self.model = Llama(
+            model_path=self.model_path,
+            n_ctx=4096,
+            n_threads=8,
+            verbose=False,
+            temperature=0.7
+        )
         self.system_prompt = """Ты — интеллектуальный ассистент управления ПК. Твоя задача — переводить запросы пользователя в структурированный JSON-формат и отвечать короткими, дружелюбными репликами.
 
         ### Доступные приложения на этом ПК:
@@ -43,23 +54,73 @@ class SmartModel:
         Запрос: "Как дела?"
         Ответ: {"action": "idle", "target": "none", "answer": "Все системы работают стабильно. Готова к вашим командам!", "emotion": "happy"}"""
 
-    def ask(self, user_query):
-        messages = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": user_query}
-        ]
-        text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
-        
-        generated_ids = self.model.generate(
-            **model_inputs,
-            max_new_tokens=128,
-            temperature=0.7,
-            do_sample=True
-        )
-        response = self.tokenizer.batch_decode(generated_ids[:, model_inputs.input_ids.shape[1]:], skip_special_tokens=True)[0]
+    def _download_model(self, model_name, model_filename):
+        """Скачивает GGUF модель при первом запуске"""
+        print(f"Модель не найдена. Начинаю загрузку ({model_filename})...")
+        print("Это может занять несколько минут в зависимости от скорости интернета.")
         
         try:
-            return json.loads(response)
-        except:
+            # Пытаемся импортировать huggingface_hub
+            try:
+                from huggingface_hub import hf_hub_download
+            except ImportError:
+                print("Устанавливаю huggingface-hub...")
+                import subprocess
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "huggingface-hub"])
+                from huggingface_hub import hf_hub_download
+            
+            # Создаём папку для моделей
+            os.makedirs(self.model_dir, exist_ok=True)
+            
+            # Скачиваем файл
+            downloaded_path = hf_hub_download(
+                repo_id=model_name,
+                filename=model_filename,
+                local_dir=self.model_dir,
+                local_dir_use_symlinks=False
+            )
+            
+            print(f"✅ Модель успешно загружена: {self.model_path}")
+            
+        except Exception as e:
+            print(f"❌ Ошибка загрузки: {e}")
+            print("\nПожалуйста, скачайте модель вручную:")
+            print(f"1. Перейдите на: https://huggingface.co/{model_name}")
+            print(f"2. Найдите файл: {model_filename}")
+            print(f"3. Сохраните его в папку: {self.model_dir}")
+            raise
+        
+    def ask(self, user_query):
+        prompt = f"""<|im_start|>system
+        {self.system_prompt}<|im_end|>
+        <|im_start|>user
+        {user_query}<|im_end|>
+        <|im_start|>assistant
+        """
+        
+        # Генерируем ответ через GGUF модель
+        response = self.model(
+            prompt,
+            max_tokens=256,        # чуть больше запас, т.к. нет точного контроля
+            temperature=0.7,
+            top_p=0.95,
+            frequency_penalty=0.1,
+            stop=["<|im_end|>", "<|im_start|>"],  # стоп-токены для Qwen
+            echo=False
+        )
+        
+        # Извлекаем сгенерированный текст
+        generated_text = response['choices'][0]['text'].strip()
+        
+        # Парсим JSON из ответа
+        try:
+            # Ищем JSON в ответе (на случай, если модель добавила лишний текст)
+            start_idx = generated_text.find('{')
+            end_idx = generated_text.rfind('}') + 1
+            if start_idx != -1 and end_idx != 0:
+                json_str = generated_text[start_idx:end_idx]
+                return json.loads(json_str)
+            else:
+                return None
+        except json.JSONDecodeError:
             return None
