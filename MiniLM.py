@@ -163,7 +163,10 @@ class MiniLMFunc:
                     }, ensure_ascii=False, indent=4)
             except Exception as e:
                 print(f"Ошибка при вызове SmartModel: {e}. Откат к MiniLM.")
-            
+            finally:
+                # В ЛЮБОМ случае очищаем за собой оперативную память сразу после вызова
+                self.smart_model.free_memory()
+                
         responses = {
             "emptyRecycleBin": ("Очищаю систему.", "processing"),
             "run": ("Секунду, сейчас запущу...", "happy"),
