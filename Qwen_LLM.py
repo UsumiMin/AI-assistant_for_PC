@@ -49,12 +49,10 @@ class SmartModel:
         Ответ: {"action": "idle", "target": "none", "answer": "Все системы работают стабильно. Готова к вашим командам!", "emotion": "happy"}"""
 
     def _download_model(self, model_name, model_filename):
-        """Скачивает GGUF модель при первом запуске"""
         print(f"Модель не найдена. Начинаю загрузку ({model_filename})...")
         print("Это может занять несколько минут в зависимости от скорости интернета.")
         
         try:
-            # Пытаемся импортировать huggingface_hub
             try:
                 from huggingface_hub import hf_hub_download
             except ImportError:
@@ -63,33 +61,28 @@ class SmartModel:
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "huggingface-hub"])
                 from huggingface_hub import hf_hub_download
             
-            # Создаём папку для моделей
             os.makedirs(self.model_dir, exist_ok=True)
-            
-            # Скачиваем файл
             downloaded_path = hf_hub_download(
                 repo_id=model_name,
                 filename=model_filename,
                 local_dir=self.model_dir,
                 local_dir_use_symlinks=False
             )
-            
             print(f"✅ Модель успешно загружена: {self.model_path}")
             
         except Exception as e:
-            print(f"❌ Ошибка загрузки: {e}")
+            print(f"Ошибка загрузки: {e}")
             print("\nПожалуйста, скачайте модель вручную:")
             print(f"1. Перейдите на: https://huggingface.co/{model_name}")
             print(f"2. Найдите файл: {model_filename}")
             print(f"3. Сохраните его в папку: {self.model_dir}")
             raise
+
     def load_model(self):
-        """Внутренний метод для загрузки в оперативную память только при необходимости"""
         if self.model is None:
             if not os.path.exists(self.model_path):
                 self._download_model(self.model_name, self.model_filename)
-            
-            print(f"🧠 Загрузка Qwen в оперативную память...")
+            print(f"Загрузка Qwen в оперативную память...")
             self.model = Llama(
                 model_path=self.model_path,
                 n_ctx=4096,
@@ -99,14 +92,9 @@ class SmartModel:
             )
     
     def free_memory(self):
-        """Метод для полной выгрузки модели из памяти"""
         if self.model is not None:
-            print(f"🧹 Выгрузка Qwen из оперативной памяти...")
-            
-            # Просто удаляем ссылку на объект модели
+            print(f"Выгрузка Qwen из оперативной памяти...")
             self.model = None
-            
-            # Принудительно запускаем сборщик мусора Python
             gc.collect()
 
     def ask(self, user_query):
@@ -118,23 +106,17 @@ class SmartModel:
         <|im_start|>assistant
         """
         
-        # Генерируем ответ через GGUF модель
         response = self.model(
             prompt,
-            max_tokens=256,        # чуть больше запас, т.к. нет точного контроля
+            max_tokens=256,
             temperature=0.7,
             top_p=0.95,
             frequency_penalty=0.1,
-            stop=["<|im_end|>", "<|im_start|>"],  # стоп-токены для Qwen
+            stop=["<|im_end|>", "<|im_start|>"],
             echo=False
         )
-        
-        # Извлекаем сгенерированный текст
         generated_text = response['choices'][0]['text'].strip()
-        
-        # Парсим JSON из ответа
         try:
-            # Ищем JSON в ответе (на случай, если модель добавила лишний текст)
             start_idx = generated_text.find('{')
             end_idx = generated_text.rfind('}') + 1
             if start_idx != -1 and end_idx != 0:

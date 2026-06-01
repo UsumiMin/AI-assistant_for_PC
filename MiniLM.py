@@ -5,6 +5,11 @@ from transliterate import translit
 from apps_list_temp import get_apps
 import json
 from Qwen_LLM import SmartModel
+import logging
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.WARNING)
 
 class AppMatcher:
     def __init__(self):
@@ -25,7 +30,7 @@ class AppMatcher:
             "ворд": "word",
             "документ": "word",
             "текст": "notepad",
-            "калькулятор": "calculator"
+            "калькулятор": "calc.exe"
         }
 
     def find(self, user_query):
@@ -55,6 +60,11 @@ class AppMatcher:
         
         if max_score >= threshold:
             return best_match, max_score
+
+        for ru, en in self.hard_coded_fixes.items():
+            if ru in clean_query:
+                return en, 1.0
+
         return None, max_score
     
 class MiniLMFunc:
@@ -95,48 +105,25 @@ class MiniLMFunc:
         for category, phrases in self.taxonomy.items():
             self.category_embeddings[category] = self.model.encode(phrases, convert_to_tensor=True)
 
-    def _map_smart_action(self, smart_action):
-        if not smart_action:
-            return "null"
-        smart_action = smart_action.lower()
-        mapping = {
-            "open": "run",
-            "start": "run",
-            "execute": "run",
-            "delete": "emptyRecycleBin",
-            "clean": "emptyRecycleBin",
-            "clear": "emptyRecycleBin",
-            "search": "runBrowser",
-            "google": "runBrowser",
-            "browser": "runBrowser",
-            "create": "New",
-            "make": "New",
-            "new": "New",
-            "update": "Change",
-            "set": "Change",
-            "modify": "Change",
-            "change": "Change"
-        }
-        if smart_action in self.ALLOWED_ACTIONS:
-            return smart_action
-        return mapping.get(smart_action, "null")
     
     def _extract_target(self, text, category):
         if category == "run":
             target_app, score = self.app_matcher.find(text)
-            return target_app if target_app else "неизвестное приложение"
+            return target_app if target_app else None
+            
         if category == "runBrowser":
             clean_text = text.lower()
-            for v in ["найди в гугле", "погугли", "найди в интернете", "найди"]:
+            for v in ["найди в гугле", "погугли", "найди в интернете", "найди", "открой"]:
                 clean_text = clean_text.replace(v, "").strip()
-            return clean_text
+            return clean_text if clean_text else None
+            
         if category in ["New", "Change"]:
             clean_text = text.lower()
             for v in ["создай", "сделай", "измени", "поменяй", "настрой"]:
                 clean_text = clean_text.replace(v, "").strip()
-            return clean_text
+            return clean_text if clean_text else None
         
-        return "null"
+        return None
     
     def predict(self, text):
         text_emb = self.model.encode(text, convert_to_tensor=True)
@@ -164,7 +151,6 @@ class MiniLMFunc:
             except Exception as e:
                 print(f"Ошибка при вызове SmartModel: {e}. Откат к MiniLM.")
             finally:
-                # В ЛЮБОМ случае очищаем за собой оперативную память сразу после вызова
                 self.smart_model.free_memory()
                 
         responses = {
