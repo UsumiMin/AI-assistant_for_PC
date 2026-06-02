@@ -219,7 +219,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 models/qwen2.5-1.5b-instruct-q4_k_m.gguf
-
-node_modules/
+model/
 venv/
 __pycache__/
