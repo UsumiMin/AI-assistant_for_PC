@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.13.0",
+    "llama-cpp-python>=0.3.24",
     "psutil>=7.2.2",
     "pywin32>=311",
     "rapidfuzz>=3.14.5",

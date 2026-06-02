@@ -7,12 +7,6 @@ import random
 
 import websockets
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - [%(levelname)s] - %(name)s - %(message)s',
-    force=True,
-)
-
 logger = logging.getLogger(__name__)
 
 HOST = '127.0.0.1'
@@ -89,33 +83,33 @@ def message_sender_factory(connection: websockets.ServerConnection) -> MessageSe
     async def message_gen(delay: float = 5.0) -> AsyncIterable[str]:
         requests_pool = [
             {
-                "action": "Change",
-                "target": "включи блютуз",
-                "answer": "Минутку, меняю настройки.",
-                "emotion": "processing",
-                "confidence": 0.9206037521362305
+                'action': 'Change',
+                'target': 'включи блютуз',
+                'answer': 'Минутку, меняю настройки.',
+                'emotion': 'processing',
+                'confidence': 0.9206037521362305,
             },
             {
-                "action": "run",
-                "target": "google chrome",
-                "answer": "Секунду, открываю браузер!",
-                "emotion": "happy",
-                "confidence": 0.9206037521362305
+                'action': 'run',
+                'target': 'google chrome',
+                'answer': 'Секунду, открываю браузер!',
+                'emotion': 'happy',
+                'confidence': 0.9206037521362305,
             },
             {
-                "action": "mute",
-                "target": "убавь громкость",
-                "answer": "Поняла, убавляю",
-                "emotion": "sad",
-                "confidence": 0.9206037521362305
+                'action': 'mute',
+                'target': 'убавь громкость',
+                'answer': 'Поняла, убавляю',
+                'emotion': 'sad',
+                'confidence': 0.9206037521362305,
             },
             {
-                "action": "music",
-                "target": "включи веселую музыку",
-                "answer": "Сейчас включу",
-                "emotion": "thinking",
-                "confidence": 0.9206037521362305
-            }
+                'action': 'music',
+                'target': 'включи веселую музыку',
+                'answer': 'Сейчас включу',
+                'emotion': 'thinking',
+                'confidence': 0.9206037521362305,
+            },
         ]
 
         while True:
@@ -139,6 +133,12 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - [%(levelname)s] - %(name)s - %(message)s',
+        force=True,
+    )
+
     try:
         asyncio.run(main())
 

@@ -6,7 +6,7 @@ from win32com.shell import shell, shellcon
 logger = logging.getLogger(__name__)
 
 
-def emptyRecycleBin() -> None:
+def emptyRecycleBin(**_: str) -> None:
     try:
         shell.SHEmptyRecycleBin(
             0,

@@ -47,17 +47,17 @@ class AppMatcher:
 
         for q in query_variants:
             result = process.extractOne(
-                q, 
-                self.apps_list, 
+                q,
+                self.apps_list,
                 scorer=distance.JaroWinkler.similarity
             )
-            
+
             if result and result[1] > max_score:
                 best_match = result[0]
                 max_score = result[1]
 
         threshold = 0.6
-        
+
         if max_score >= threshold:
             return best_match, max_score
 
@@ -66,7 +66,7 @@ class AppMatcher:
                 return en, 1.0
 
         return None, max_score
-    
+
 class MiniLMFunc:
     def __init__(self):
         self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
@@ -75,15 +75,15 @@ class MiniLMFunc:
         self.ALLOWED_ACTIONS = {"run", "emptyRecycleBin", "runBrowser", "New", "Change"}
         self.taxonomy = {
             "emptyRecycleBin": [
-                "очисти корзину", "удали временные файлы", "почисти кэш", 
+                "очисти корзину", "удали временные файлы", "почисти кэш",
                 "освободи место на диске", "удалить мусор", "приберись в системе"
             ],
             "run": [
-                "открой браузер", "запусти программу", "открой калькулятор", "включи плеер", 
+                "открой браузер", "запусти программу", "открой калькулятор", "включи плеер",
                 "запусти игру", "открой блокнот", "запусти приложение"
             ],
             "runBrowser": [
-                "найди в гугле", "перейди на сайт", "погугли как готовить", 
+                "найди в гугле", "перейди на сайт", "погугли как готовить",
                 "найди рецепт в интернете", "открой сайт", "покажи курсы", "найди расписание"
             ],
             "New": [
@@ -91,40 +91,40 @@ class MiniLMFunc:
                 "создай файл", "сделай заметку", "создай ворд", "создай презентацию"
             ],
             "Change": [
-                "сделай звук тише", "Увеличь громкость", "измени яркость", "поменяй обои", 
+                "сделай звук тише", "Увеличь громкость", "измени яркость", "поменяй обои",
                 "включи блютуз", "включи ночной режим", "смени тему", "настрой сеть", "смени язык"
             ],
             "Talk": [
-                "как дела", "ты милая", "привет", "расскажи историю", 
+                "как дела", "ты милая", "привет", "расскажи историю",
                 "кто тебя создал", "поговори со мной", "спой песню"
             ]
         }
-        
+
         self.category_embeddings = {}
-        
+
         for category, phrases in self.taxonomy.items():
             self.category_embeddings[category] = self.model.encode(phrases, convert_to_tensor=True)
 
-    
+
     def _extract_target(self, text, category):
         if category == "run":
             target_app, score = self.app_matcher.find(text)
             return target_app if target_app else None
-            
+
         if category == "runBrowser":
             clean_text = text.lower()
             for v in ["найди в гугле", "погугли", "найди в интернете", "найди", "открой"]:
                 clean_text = clean_text.replace(v, "").strip()
             return clean_text if clean_text else None
-            
+
         if category in ["New", "Change"]:
             clean_text = text.lower()
             for v in ["создай", "сделай", "измени", "поменяй", "настрой"]:
                 clean_text = clean_text.replace(v, "").strip()
             return clean_text if clean_text else None
-        
+
         return None
-    
+
     def predict(self, text):
         text_emb = self.model.encode(text, convert_to_tensor=True)
         results = {}
@@ -133,7 +133,7 @@ class MiniLMFunc:
             results[category] = torch.max(scores).item()
         best_category = max(results, key=results.get)
         return best_category, results[best_category]
-    
+
     def get_json_response(self, text):
         category, confidence = self.predict(text)
         if confidence < 0.6 and self.smart_model:
@@ -152,7 +152,7 @@ class MiniLMFunc:
                 print(f"Ошибка при вызове SmartModel: {e}. Откат к MiniLM.")
             finally:
                 self.smart_model.free_memory()
-                
+
         responses = {
             "emptyRecycleBin": ("Очищаю систему.", "processing"),
             "run": ("Секунду, сейчас запущу...", "happy"),
@@ -161,19 +161,19 @@ class MiniLMFunc:
             "Change": ("Минутку, меняю настройки.", "processing"),
             "Talk": ("Я всегда рада поболтать!", "happy")
         }
-        
+
         ans_text, emotion = responses.get(category, ("Я вас не совсем поняла.", "sad"))
         target = self._extract_target(text, category)
-        final_action = category if category in self.ALLOWED_ACTIONS else "null"
+        final_action = category if category in self.ALLOWED_ACTIONS else None
         result = {
             "action": final_action,
-            "target": target if category in ["run","New","Change"] else "null",
+            "target": target if category in ["run","New","Change"] else None,
             "answer": ans_text,
             "emotion": emotion,
             "confidence": round(confidence, 2),
             "source": "minilm"
         }
-        
+
         return json.dumps(result, ensure_ascii=False, indent=4)
 
 
