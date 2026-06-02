@@ -147,22 +147,40 @@
 
     <div class="button_box">
       <div class="button_box">
-        <div class="button">
+        <div class="button" id="btn-settings">
           <img class="button_icon" src="./sources/icons/settings.svg" alt="">
           <span>Настройки</span>
         </div>
 
-        <div class="button">
+        <div class="button" id="btn-custom">
           <img class="button_icon" src="./sources/icons/custom.svg" alt="">
           <span>Кастомизация</span>
         </div>
 
-        <div class="button">
+        <div class="button" id="btn-log">
           <img class="button_icon" src="./sources/icons/log.svg" alt="">
           <span>Лог действий</span>
         </div>
       </div>
-  </div>
+  </div> <script src="./node_modules/pixi.js/dist/pixi.min.js"></script>
+  <script src="./avatar.js"></script>
+  <script src="./design.js"></script>
+  
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      ipcRenderer.send('open-window', 'settings.html');
+    });
+
+    document.getElementById('btn-custom').addEventListener('click', () => {
+      ipcRenderer.send('open-window', 'custom.html');
+    });
+
+    document.getElementById('btn-log').addEventListener('click', () => {
+      ipcRenderer.send('open-window', 'log.html');
+    });
+  </script>
 
   <script src="./node_modules/pixi.js/dist/pixi.min.js"></script>
   <!-- <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script> -->

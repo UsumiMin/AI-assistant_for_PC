@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Кастомизация</title>
+  <style>
+    body {
+      margin: 0; font-family: sans-serif; background: #f4f1f8;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
+    }
+    h1 { color: #233365; }
+    .btn-back {
+      padding: 10px 20px; background: #ffcaf4; border: none; border-radius: 8px;
+      color: #233365; font-weight: bold; cursor: pointer; transition: transform 0.2s;
+    }
+    .btn-back:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  </style>
+</head>
+<body>
+  <h1>Окно Кастомизации</h1>
+  <button class="btn-back" onclick="window.close()">Назад</button>
+</body>
+</html>
