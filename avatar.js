@@ -181,18 +181,33 @@
     return;
   }
 
-  try {
-    if (window.__avatarWs) {
-      console.log('[avatar] Closing old global WebSocket connection...');
-      window.__avatarWs.close();
+  let reconnectAttempts = 0;
+  let reconnectTimer = null;
+  let ws = null;
+
+  function connectWebSocket() {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
     }
-
+    
     const wsUrl = 'ws://127.0.0.1:8080';
-    const ws = new WebSocket(wsUrl);
-    window.__avatarWs = ws;
-
+    console.log(`[avatar] Connecting to ${wsUrl}... (attempt ${reconnectAttempts + 1})`);
+    
+    ws = new WebSocket(wsUrl);
+    
     ws.addEventListener('open', () => {
-      console.log('[avatar] WebSocket connected:', wsUrl);
+      console.log('[avatar] WebSocket connected successfully!');
+      reconnectAttempts = 0;
+      
+      const overlay = document.getElementById('answerOverlay');
+      if (overlay) {
+        overlay.textContent = 'Подключено к серверу! Говорите...';
+        overlay.classList.add('visible');
+        setTimeout(() => {
+          if (overlay) overlay.classList.remove('visible');
+        }, 2000);
+      }
     });
 
     ws.addEventListener('message', (event) => {
@@ -200,15 +215,31 @@
       handleServerMessage(event.data);
     });
 
-    ws.addEventListener('close', (e) => {
-      console.warn('[avatar] WebSocket closed:', e?.code, e?.reason);
+    ws.addEventListener('close', (event) => {
+      console.warn(`[avatar] WebSocket closed: ${event.code} - ${event.reason}`);
+      
+      const overlay = document.getElementById('answerOverlay');
+      if (overlay) {
+        overlay.textContent = 'Потеряно соединение с сервером. Переподключение...';
+        overlay.classList.add('visible');
+      }
+      
+      const delay = Math.min(3000 * (reconnectAttempts + 1), 15000);
+      reconnectAttempts++;
+      
+      console.log(`[avatar] Reconnecting in ${delay/1000}s... (attempt ${reconnectAttempts})`);
+      
+      reconnectTimer = setTimeout(() => {
+        connectWebSocket();
+      }, delay);
     });
 
     ws.addEventListener('error', (err) => {
       console.error('[avatar] WebSocket error:', err);
     });
-
-  } catch (err) {
-    console.error('[avatar] Failed to setup WebSocket:', err);
+    
+    window.__avatarWs = ws;
   }
+
+  connectWebSocket();
 })();
