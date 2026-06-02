@@ -5,10 +5,15 @@ from transliterate import translit
 from apps_list_temp import get_apps
 import json
 from Qwen_LLM import SmartModel
+import logging
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.WARNING)
 
 class AppMatcher:
-    def __init__(self, apps_list):
-        self.apps_list = apps_list
+    def __init__(self):
+        self.apps_list = get_apps()
         self.hard_coded_fixes = {
             "хром": "google chrome",
             "браузер": "google chrome",
@@ -17,7 +22,15 @@ class AppMatcher:
             "проводник": "explorer",
             "стим": "steam",
             "проводник": "explorer",
-            "блокнот": "notepad"
+            "блокнот": "notepad",
+            "заметки": "notepad",
+            "заметочник": "notepad",
+            "таблицы": "excel",
+            "эксель": "excel",
+            "ворд": "word",
+            "документ": "word",
+            "текст": "notepad",
+            "калькулятор": "calc.exe"
         }
 
     def find(self, user_query):
@@ -47,15 +60,19 @@ class AppMatcher:
         
         if max_score >= threshold:
             return best_match, max_score
+
+        for ru, en in self.hard_coded_fixes.items():
+            if ru in clean_query:
+                return en, 1.0
+
         return None, max_score
     
 class MiniLMFunc:
     def __init__(self):
         self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-        apps_list = get_apps()
-        self.app_matcher = AppMatcher(apps_list)
-        self.smart_model = SmartModel(apps_list)
-
+        self.app_matcher = AppMatcher()
+        self.smart_model = SmartModel(self.app_matcher.apps_list)
+        self.ALLOWED_ACTIONS = {"run", "emptyRecycleBin", "runBrowser", "New", "Change"}
         self.taxonomy = {
             "emptyRecycleBin": [
                 "очисти корзину", "удали временные файлы", "почисти кэш", 
@@ -88,22 +105,25 @@ class MiniLMFunc:
         for category, phrases in self.taxonomy.items():
             self.category_embeddings[category] = self.model.encode(phrases, convert_to_tensor=True)
 
+    
     def _extract_target(self, text, category):
         if category == "run":
             target_app, score = self.app_matcher.find(text)
-            return target_app if target_app else "неизвестное приложение"
+            return target_app if target_app else None
+            
         if category == "runBrowser":
             clean_text = text.lower()
-            for v in ["найди в гугле", "погугли", "найди в интернете", "найди"]:
+            for v in ["найди в гугле", "погугли", "найди в интернете", "найди", "открой"]:
                 clean_text = clean_text.replace(v, "").strip()
-            return clean_text
+            return clean_text if clean_text else None
+            
         if category in ["New", "Change"]:
             clean_text = text.lower()
             for v in ["создай", "сделай", "измени", "поменяй", "настрой"]:
                 clean_text = clean_text.replace(v, "").strip()
-            return clean_text
+            return clean_text if clean_text else None
         
-        return "null"
+        return None
     
     def predict(self, text):
         text_emb = self.model.encode(text, convert_to_tensor=True)
@@ -118,16 +138,21 @@ class MiniLMFunc:
         category, confidence = self.predict(text)
         if confidence < 0.6 and self.smart_model:
             print(f"Низкая уверенность ({confidence:.2f}). Обращаюсь к Qwen...")
-            smart_res = self.smart_model.ask(text)
-            if smart_res:
-                return json.dumps({
-                    "action": smart_res.get("action"),
-                    "target": smart_res.get("target"),
-                    "answer": smart_res.get("answer"),
-                    "emotion": smart_res.get("emotion"),
-                    "source": "smart_llm"
-                }, ensure_ascii=False, indent=4)
-            
+            try:
+                smart_res = self.smart_model.ask(text)
+                if smart_res and isinstance(smart_res, dict):
+                    return json.dumps({
+                        "action": smart_res.get("action"),
+                        "target": smart_res.get("target"),
+                        "answer": smart_res.get("answer"),
+                        "emotion": smart_res.get("emotion"),
+                        "source": "smart_llm"
+                    }, ensure_ascii=False, indent=4)
+            except Exception as e:
+                print(f"Ошибка при вызове SmartModel: {e}. Откат к MiniLM.")
+            finally:
+                self.smart_model.free_memory()
+                
         responses = {
             "emptyRecycleBin": ("Очищаю систему.", "processing"),
             "run": ("Секунду, сейчас запущу...", "happy"),
@@ -139,13 +164,14 @@ class MiniLMFunc:
         
         ans_text, emotion = responses.get(category, ("Я вас не совсем поняла.", "sad"))
         target = self._extract_target(text, category)
-
+        final_action = category if category in self.ALLOWED_ACTIONS else "null"
         result = {
-            "action": category if category != "Talk" else "null",
+            "action": final_action,
             "target": target if category in ["run","New","Change"] else "null",
             "answer": ans_text,
             "emotion": emotion,
-            "confidence": confidence
+            "confidence": round(confidence, 2),
+            "source": "minilm"
         }
         
         return json.dumps(result, ensure_ascii=False, indent=4)
