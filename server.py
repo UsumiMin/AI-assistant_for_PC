@@ -3,8 +3,15 @@ import json
 import logging
 from collections.abc import AsyncIterable, Callable
 from contextlib import suppress
+import random
 
 import websockets
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - [%(levelname)s] - %(name)s - %(message)s',
+    force=True,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +46,13 @@ class WebsocketConnectionHandler:
 
         try:
             if self._active_connection is not None:
-                await connection.close(reason='Server connection limit')
-                return
+                logger.info('Поступило новое подключение. Закрываем предыдущую сессию...')
+                await self._active_connection.close(reason='Replaced by new connection')
+                await asyncio.sleep(0.1)
 
             self._active_connection = connection
 
             sender: MessageSender = self._sender_factory(connection)
-
             sender_task = asyncio.create_task(sender())
 
             await connection.wait_closed()
@@ -73,17 +80,50 @@ class WebsocketConnectionHandler:
                 with suppress(asyncio.CancelledError):
                     await sender_task
 
-            self._active_connection = None
+            if self._active_connection == connection:
+                self._active_connection = None
 
 
 def message_sender_factory(connection: websockets.ServerConnection) -> MessageSender:
 
-    async def message_gen(delay: float = 5) -> AsyncIterable[str]:
+    async def message_gen(delay: float = 5.0) -> AsyncIterable[str]:
+        requests_pool = [
+            {
+                "action": "Change",
+                "target": "включи блютуз",
+                "answer": "Минутку, меняю настройки.",
+                "emotion": "processing",
+                "confidence": 0.9206037521362305
+            },
+            {
+                "action": "run",
+                "target": "google chrome",
+                "answer": "Секунду, открываю браузер!",
+                "emotion": "happy",
+                "confidence": 0.9206037521362305
+            },
+            {
+                "action": "mute",
+                "target": "убавь громкость",
+                "answer": "Поняла, убавляю",
+                "emotion": "sad",
+                "confidence": 0.9206037521362305
+            },
+            {
+                "action": "music",
+                "target": "включи веселую музыку",
+                "answer": "Сейчас включу",
+                "emotion": "thinking",
+                "confidence": 0.9206037521362305
+            }
+        ]
+
         while True:
-            yield json.dumps({'action': 'smile'})
+            chosen_request = random.choice(requests_pool)
+            yield json.dumps(chosen_request)
             await asyncio.sleep(delay)
 
-    return MessageSender(connection, message_gen(delay=5))
+    return MessageSender(connection, message_gen(delay=5.0))
 
 
 async def main() -> None:
@@ -99,12 +139,6 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - [%(levelname)s] - %(name)s - %(message)s',
-        force=True,
-    )
-
     try:
         asyncio.run(main())
 
