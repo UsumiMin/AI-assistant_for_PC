@@ -21,12 +21,15 @@ def getBrowserExePath(name: str) -> str:
         return shlex.split(str(winreg.QueryValueEx(key, '')[0]))[0]
 
 
-def runBrowser() -> None:
+def runBrowser(target: str | None = None) -> None:
     browserExePath: Path = Path(getBrowserExePath(getBrowserNameInRegistry()))
 
     browserWindow: int | None = findWindowByProcessName(browserExePath.name)
     if browserWindow is None:
-        psutil.Popen(browserExePath)
+        if target:
+            psutil.Popen([browserExePath, target])
+        else:
+            psutil.Popen(browserExePath)
     else:
         activateWindow(browserWindow)
 
