@@ -8,7 +8,7 @@ class SmartModel:
     def __init__(self, apps_list,  model_name="Qwen/Qwen2.5-1.5B-Instruct-GGUF", model_filename="qwen2.5-1.5b-instruct-q4_k_m.gguf"):
         self.apps_list = apps_list
         self.apps_string = ", ".join(apps_list)
-        self.model_dir = os.path.join(os.path.dirname(__file__), "models")
+        self.model_dir = os.path.join(os.path.dirname(__file__), "model")
         self.model_path = os.path.join(self.model_dir, model_filename)
         self.model_name = model_name
         self.model_filename = model_filename
