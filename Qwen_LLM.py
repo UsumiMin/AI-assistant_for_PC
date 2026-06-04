@@ -1,4 +1,4 @@
-from llama_cpp import Llama
+from llama_cpp import Llama, LlamaGrammar
 import json
 import os
 import sys
@@ -14,7 +14,7 @@ class SmartModel:
         self.model_filename = model_filename
         self.model = None
         
-        self.system_prompt = """Ты — интеллектуальный ассистент управления ПК. Твоя задача — переводить запросы пользователя в структурированный JSON-формат и отвечать короткими, дружелюбными репликами.
+        self.system_prompt = f"""Ты — интеллектуальный ассистент управления ПК. Твоя задача — переводить запросы пользователя в структурированный JSON-формат и отвечать короткими, дружелюбными репликами.
 
         ### Доступные приложения на этом ПК:
         [{self.apps_string}]
@@ -25,7 +25,7 @@ class SmartModel:
         "runBrowser": Запуск браузера для поиска чего-либо;
         "New": Создание файлов;
         "Change": Изменение настроек на устройстве;
-        "Talk": Обычный разговорный ответ без действий.
+        "Talk": Обычный разговорный ответ без действий, если запрос не относиться ни к чему перечисленному выше.
 
         ### Правила ответа:
         1. Твой ответ ВСЕГДА должен быть в формате JSON.
@@ -40,13 +40,13 @@ class SmartModel:
 
         ### Примеры:
         Запрос: "Очисти корзину"
-        Ответ: {"action": "emptyRecycleBin", "target": "null", "answer": "Поняла, корзина пуста.", "emotion": "processing"}
+        Ответ: {{"action": "emptyRecycleBin", "target": "none", "answer": "Поняла, корзина пуста.", "emotion": "processing"}}
 
         Запрос: "Открой браузер"
-        Ответ: {"action": "run", "target": "google chrome", "answer": "Запускаю ваш браузер.", "emotion": "thinking"}
+        Ответ: {{"action": "run", "target": "google chrome", "answer": "Запускаю ваш браузер.", "emotion": "thinking"}}
 
         Запрос: "Как дела?"
-        Ответ: {"action": "idle", "target": "none", "answer": "Все системы работают стабильно. Готова к вашим командам!", "emotion": "happy"}"""
+        Ответ: {{"action": "Talk", "target": "none", "answer": "Все системы работают стабильно. Готова к вашим командам!", "emotion": "happy"}}"""
 
     def _download_model(self, model_name, model_filename):
         print(f"Модель не найдена. Начинаю загрузку ({model_filename})...")
@@ -99,23 +99,27 @@ class SmartModel:
 
     def ask(self, user_query):
         self.load_model()
+        
         prompt = f"""<|im_start|>system
-        {self.system_prompt}<|im_end|>
-        <|im_start|>user
-        {user_query}<|im_end|>
-        <|im_start|>assistant
-        """
+{self.system_prompt}<|im_end|>
+<|im_start|>user
+Ответь на запрос: "{user_query}". Твой ответ должен состоять ТОЛЬКО из одного валидного JSON-объекта. Никакого текста до и после JSON!<|im_end|>
+<|im_start|>assistant
+{{"""
         
         response = self.model(
             prompt,
             max_tokens=256,
             temperature=0.7,
             top_p=0.95,
-            frequency_penalty=0.1,
-            stop=["<|im_end|>", "<|im_start|>"],
+            frequency_penalty=0.4,
+            stop=["<|im_end|>", "<|im_start|>", "}"],
             echo=False
         )
         generated_text = response['choices'][0]['text'].strip()
+        generated_text = "{" + generated_text
+        if not generated_text.endswith("}"):
+                generated_text += "}"
         try:
             start_idx = generated_text.find('{')
             end_idx = generated_text.rfind('}') + 1
