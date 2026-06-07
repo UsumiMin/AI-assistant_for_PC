@@ -1,3 +1,14 @@
+import sys
+import subprocess
+
+try:
+    import edge_tts
+    import pydub
+except ImportError:
+    print("[Система]: Установка недостающих библиотек (edge-tts, pydub)...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "edge-tts", "pydub"])
+    print("[Система]: Библиотеки успешно установлены!")
+
 import queue
 import sys
 import json
