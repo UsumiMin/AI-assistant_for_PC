@@ -1,4 +1,3 @@
-from tts import say
 import sys
 import subprocess
 import queue
@@ -7,37 +6,12 @@ import os
 import zipfile
 import urllib.request
 import urllib.error
-import asyncio
-from io import BytesIO
+
+from tts import say 
 import sounddevice as sd
-import numpy as np
-import soundfile as sf
-from edge_tts import Communicate
 from vosk import Model, KaldiRecognizer, SetLogLevel
 
-VOICE = "ru-RU-SvetlanaNeural"
-
 SetLogLevel(-1)
-
-async def generate_anime_audio(text: str) -> bytes:
-    communicate = Communicate(text, VOICE, pitch="+20Hz", rate="+10%")
-    audio_bytes = b""
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            audio_bytes += chunk["data"]
-    return audio_bytes
-
-def say(text: str):
-    print(f"[Ассистент]: {text}", flush=True)
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        mp3_data = loop.run_until_complete(generate_anime_audio(text))
-        data, fs = sf.read(BytesIO(mp3_data), dtype='int16')
-        sd.play(data, samplerate=fs)
-        sd.wait()
-    except Exception as e:
-        print(f"\n[Ошибка TTS]: Не удалось озвучить текст ({e})", file=sys.stderr)
 
 def progress_callback(block_num, block_size, total_size):
     downloaded = block_num * block_size
@@ -56,7 +30,6 @@ def download_model():
     if os.path.exists(model_path) and os.path.isdir(model_path):
         return model_path
     
-    
     print("\n[Система]: Локальная модель не найдена. Начинаю скачивание с официального сайта Vosk...")
     
     url = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
@@ -67,14 +40,12 @@ def download_model():
         opener.addheaders = [('User-Agent', 'Mozilla/5.0')]
         urllib.request.install_opener(opener)
         
-       
         urllib.request.urlretrieve(url, zip_path, reporthook=progress_callback)
         print("\n[Система]: Распаковка архива...")
         
         with zipfile.ZipFile(zip_path, 'r') as f:
             f.extractall(script_dir)
             
-        
         extracted_folder = os.path.join(script_dir, "vosk-model-small-ru-0.22")
         
         if os.path.exists(extracted_folder):
@@ -95,23 +66,21 @@ def speech_recognition_stream():
     
     print("[Система]: Загрузка движка Vosk...")
     model = Model(model_path)
-
-    device_id = None  # он сам ищет устройство
-    
+    device_id = None  
     
     device_info = sd.query_devices(device_id, 'input')
     native_samplerate = int(device_info['default_samplerate'])
     
     rec = KaldiRecognizer(model, native_samplerate)
-    
     q = queue.Queue()
     
     def callback(indata, frames, time, status):
         if status:
             pass 
         q.put(bytes(indata))
+
     with sd.RawInputStream(samplerate=native_samplerate, blocksize=8000,
-                          dtype='int16', channels=1, callback=callback, device=device_id):
+                           dtype='int16', channels=1, callback=callback, device=device_id):
         print("\n[Система]: Микрофон активен! Говорите...")
         while True:
             data = q.get()
@@ -135,7 +104,7 @@ def main():
                 say("До скорого!")
                 break
             else:
-                say(f"Ты сказал: {final_text}. Я тебя поняла!")
+                say(f"Ты сказала: {final_text}. Я тебя поняла!")
                 
     except KeyboardInterrupt:
         print("\n[Система]: Работа завершена.")
