@@ -4,9 +4,12 @@ import subprocess
 try:
     import edge_tts
     import soundfile
+    import sounddevice
+    import vosk    
+    import numpy
 except ImportError:
     print("[Система]: Установка недостающих библиотек...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "edge-tts", "soundfile"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "edge-tts", "soundfile", "sounddevice", "vosk"])
 
 import queue
 import json
