@@ -1,14 +1,13 @@
 import asyncio
 from io import BytesIO
 import sounddevice as sd
-import numpy as np
-from pydub import AudioSegment
+import soundfile as sf
 from edge_tts import Communicate
 
 VOICE = "ru-RU-SvetlanaNeural"
 
 async def _generate_audio_stream(text: str) -> bytes:
-    communicate = Communicate(text, VOICE, pitch="+25%", rate="+10%")
+    communicate = Communicate(text, VOICE, pitch="+20Hz", rate="+10%")
     audio_bytes = b""
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -23,12 +22,10 @@ def say(text: str) -> None:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         mp3_data = loop.run_until_complete(_generate_audio_stream(text))
+    
+        data, samplerate = sf.read(BytesIO(mp3_data))
         
-        audio_seg = AudioSegment.from_file(BytesIO(mp3_data), format="mp3")
-        audio_seg = audio_seg.set_frame_rate(24000).set_channels(1)
-        audio_np = np.array(audio_seg.get_array_of_samples(), dtype=np.int16)
-        
-        sd.play(audio_np, samplerate=24000)
+        sd.play(data, samplerate=samplerate)
         sd.wait()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[Ошибка TTS]: {e}")
