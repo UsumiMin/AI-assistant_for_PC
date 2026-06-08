@@ -25,7 +25,7 @@ def progress_callback(block_num, block_size, total_size):
 
 def download_model():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "1vosk-model-ru-0.22")
+    model_path = os.path.join(script_dir, "vosk-model-small-ru-0.22")
     
     if os.path.exists(model_path) and os.path.isdir(model_path):
         return model_path
