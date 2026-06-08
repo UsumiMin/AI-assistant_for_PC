@@ -1,3 +1,4 @@
+from tts import say
 import sys
 import subprocess
 
