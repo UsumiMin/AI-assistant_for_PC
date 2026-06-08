@@ -90,26 +90,31 @@ def speech_recognition_stream():
                     yield text
 
 def main():
-    say("Привет! Я готова к работе.")
+    assistant = MiniLMFunc()
+    say("Система запущена. Я слушаю.")
     
     try:
         for final_text in speech_recognition_stream():
-            print(f"[Вы сказали]: {final_text}")
+          
+            json_str = assistant.get_json_response(final_text)
+            data = json.loads(json_str)
             
-            if "привет" in final_text or "здравствуй" in final_text:
-                say("И тебе приветик! Рада тебя слышать.")
-            elif "как дела" in final_text:
-                say("Всё просто супер! Слушаю твои команды.")
-            elif "пока" in final_text or "стоп" in final_text:
-                say("До скорого!")
-                break
-            else:
-                say(f"Ты сказала: {final_text}. Я тебя поняла!")
+            answer = data.get("answer", "Не понимаю вас.")
+            say(answer)
+
+            action = data.get("action")
+            target = data.get("target")
+            
+            if action and action != "Talk":
+                execute_action(action, target)
                 
-    except KeyboardInterrupt:
-        print("\n[Система]: Работа завершена.")
     except Exception as e:
-        print(f"\n[Критическая ошибка]: {e}")
+        print(f"Ошибка в main: {e}")
+
+def execute_action(action, target):
+    print(f"Выполняю действие: {action} с целью: {target}")
+    if action == "run":
+        os.startfile(target)
 
 if __name__ == '__main__':
     main()
