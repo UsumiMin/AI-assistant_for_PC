@@ -42,6 +42,9 @@ if exist package-lock.json del /f /q package-lock.json
 echo [INFO] Cleaning npm hard cache...
 call npm cache clean --force
 
+echo [INFO] Installing all dependencies from package.json...
+call npm install
+
 echo [INFO] Installing electron wrapper (ignoring buggy postinstalls)...
 call npm install electron --save-dev --ignore-scripts
 

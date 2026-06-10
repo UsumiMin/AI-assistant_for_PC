@@ -17,10 +17,13 @@ class AppMatcher:
         self.hard_coded_fixes = {
             "хром": "google chrome",
             "браузер": "google chrome",
+            "телеграмм": "telegram desktop",
             "телега": "telegram desktop",
             "тг": "telegram desktop",
             "проводник": "explorer",
             "стим": "steam",
+            "тим": "steam",
+            "сти": "steam",
             "проводник": "explorer",
             "блокнот": "notepad",
             "заметки": "notepad",
@@ -136,8 +139,8 @@ class MiniLMFunc:
 
     def get_json_response(self, text):
         category, confidence = self.predict(text)
-        if confidence < 0.6 and self.smart_model:
-            print(f"Низкая уверенность ({confidence:.2f}). Обращаюсь к Qwen...")
+        if (confidence < 0.6 or category == "Talk") and self.smart_model:
+            print(f"Низкая уверенность ({confidence:.2f}) или разговор. Обращаюсь к Qwen...")
             try:
                 smart_res = self.smart_model.ask(text)
                 if smart_res and isinstance(smart_res, dict):
@@ -154,12 +157,12 @@ class MiniLMFunc:
                 self.smart_model.free_memory()
 
         responses = {
-            "emptyRecycleBin": ("Очищаю систему.", "processing"),
+            "emptyRecycleBin": ("Очищаю корзину.", "processing"),
             "run": ("Секунду, сейчас запущу...", "happy"),
             "runBrowser": ("Открываю браузер, ищу для вас информацию.", "thinking"),
             "New": ("Без проблем, сейчас всё создам.", "processing"),
             "Change": ("Минутку, меняю настройки.", "processing"),
-            "Talk": ("Я всегда рада поболтать!", "happy")
+            "Talk": ("Простите, я немного запуталась, повторите пожалуйста", "happy")
         }
 
         ans_text, emotion = responses.get(category, ("Я вас не совсем поняла.", "sad"))
