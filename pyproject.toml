@@ -8,6 +8,7 @@ dependencies = [
     "accelerate>=1.13.0",
     "llama-cpp-python>=0.3.24",
     "psutil>=7.2.2",
+    "pycaw>=20251023",
     "pywin32>=311",
     "rapidfuzz>=3.14.5",
     "sentence-transformers>=5.5.0",
@@ -16,6 +17,7 @@ dependencies = [
     "transliterate>=1.10.2",
     "vosk>=0.3.45",
     "websockets>=16.0",
+    "winsdk>=1.0.0b10",
 ]
 
 [dependency-groups]
