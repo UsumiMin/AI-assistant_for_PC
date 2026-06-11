@@ -118,7 +118,7 @@
 
       } else if (activeEmotion === 'sad') {
         try {
-          coreModel.setParameterValueById('ParamA', 0);
+          coreModel.setParameterValueById('ParamA', 0.6);
           coreModel.setParameterValueById('ParamMouthUp', 0);
           coreModel.setParameterValueById('ParamMouthDown', 1);
 

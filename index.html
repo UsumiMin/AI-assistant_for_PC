@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Assistant</title>
 
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=qWif41OkBkquYlKEVQ4tuo0JgwnJZ_YsxYpgCTXWIazcgMEC_pnmgtpCr7W2ULpK7yvgwRs-57ICSP7-atwB2vNOSWCxapEWkTXtbXlEcsgTr6TjCDgdrnyjSsq0uzped38HpDv1ZL0DpwxZZInR4BB4hMECTQCfVSZQacD_-IYF-nb6vaO3mkzXM0_Z7jubQhxkokB-ufA3gQGUnX1Co447CDZwLwL_sQ83-wSeOAMjY4WElW23g8ayMIGLo36rsIiGq53zp1opUAXwNlDTUDU0vAxUuU2L9WbuCdRgft2z8bB9EHlByZKRiosyRaPb" charset="UTF-8"></script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -220,6 +222,61 @@
       transform: translateY(-1px);
       filter: brightness(1.1);
     }
+
+    /* Startup modal */
+    #startupModal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    #startupModal .modal {
+      width: 520px;
+      max-width: calc(100vw - 40px);
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px 18px 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    #startupModal .title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #233365;
+      margin-bottom: 10px;
+    }
+
+    #startupModal .text {
+      font-size: 14px;
+      line-height: 1.35;
+      color: #233365;
+      opacity: 0.95;
+    }
+
+    #startupModal .actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    #startupModal #btnStartupOk {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      background: #a59cf3;
+      color: #233365;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #startupModal #btnStartupOk:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 
@@ -246,9 +303,9 @@
         <img class="button_icon" src="./sources/icons/custom.svg" alt="">
         <span>Кастомизация</span>
       </div>
-      <div class="button" id="btn-log">
-        <img class="button_icon" src="./sources/icons/log.svg" alt="">
-        <span>Лог действий</span>
+      <div class="button" id="btn-inform">
+        <img class="button_icon" src="./sources/icons/inform.svg" alt="">
+        <span>Инструкция</span>
       </div>
     </div>
   </div>
@@ -259,10 +316,57 @@
 
   <div class="backing"></div>
 
+  <div id="startupModal" aria-modal="true" role="dialog">
+    <div class="modal">
+      <div class="title">Чтобы обратиться к ассистенту</div>
+      <div class="text">
+        Начните фразу с ее имени, например: «<b>Афина</b>, очисти корзину».
+      </div>
+      <div class="actions">
+        <button id="btnStartupOk">Понятно</button>
+      </div>
+    </div>
+  </div>
+
   <script src="./node_modules/pixi.js/dist/pixi.min.js"></script>
   <script src="./live2dcubismcore.min.js"></script>
   <script src="./node_modules/pixi-live2d-display/dist/cubism4.min.js"></script>
-  <script src="./avatar.js"></script>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('startupModal');
+      const okBtn = document.getElementById('btnStartupOk');
+
+      const key = 'startupModalShownThisSession_v1';
+      const alreadyShown = sessionStorage.getItem(key) === '1';
+      if (alreadyShown) {
+        if (modal) modal.style.display = 'none';
+        return;
+      }
+
+      sessionStorage.setItem(key, '1');
+
+      okBtn.addEventListener('click', () => {
+        if (modal) modal.style.display = 'none';
+      });
+    });
+  </script>
+
+
+  <script>
+    (async () => {
+      const { ipcRenderer } = require('electron');
+      const settings = await ipcRenderer.invoke('get-settings');
+      const activeScript = settings.avatarScript || 'avatar.js';
+
+      const scriptNode = document.createElement('script');
+      scriptNode.src = `./${activeScript}`;
+      document.body.appendChild(scriptNode);
+      console.log(`[Loader] Успешно подключен скрипт: ${activeScript}`);
+    })();
+  </script>
+
+  <script type="module" src="./design.js"></script>
   <script type="module" src="./design.js"></script>
 
   <script>
@@ -284,8 +388,8 @@
     document.getElementById('btn-custom').addEventListener('click', () => {
       ipcRenderer.send('open-window', 'custom.html');
     });
-    document.getElementById('btn-log').addEventListener('click', () => {
-      ipcRenderer.send('open-window', 'log.html');
+    document.getElementById('btn-inform').addEventListener('click', () => {
+      ipcRenderer.send('open-window', 'inform.html');
     });
 
     const avatarCanvas  = document.getElementById('avatarCanvas');
@@ -315,3 +419,4 @@
   </script>
 </body>
 </html>
+

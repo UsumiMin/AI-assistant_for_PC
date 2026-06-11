@@ -90,7 +90,7 @@ ipcMain.on('window-minimize', () => {
   isMinimized = true;
 
   if (!currentSettings.miniMode) {
-    win.minimize(); // Уходит в панель задач
+    win.minimize();
     return;
   }
 
@@ -157,7 +157,7 @@ ipcMain.on('open-window', (event, filePage) => {
     height: 500,
     parent: win,
     resizable: false,
-    frame: true,
+    frame: false,
     alwaysOnTop: true,        
     webPreferences: {
       nodeIntegration: true,
@@ -192,6 +192,15 @@ ipcMain.on('open-window', (event, filePage) => {
 
 ipcMain.on('window-close', () => {
   app.quit();
+});
+
+ipcMain.on('change-avatar-script', (event, scriptName) => {
+  currentSettings.avatarScript = scriptName;
+  saveSettings(currentSettings);
+  
+  if (win && !win.isDestroyed()) {
+    win.reload();
+  }
 });
 
 app.whenReady().then(createWindow);

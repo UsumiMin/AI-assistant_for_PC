@@ -1,0 +1,55 @@
+{
+    "Type": "Live2D Expression",
+    "Parameters": [
+        {
+            "Id": "Param14",
+            "Value": 1.0,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowRAngle",
+            "Value": 0.8551778793334961,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowRForm",
+            "Value": -0.4866863489151001,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowRY",
+            "Value": -1.0,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamMouthForm",
+            "Value": -0.7036105394363403,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowLAngle",
+            "Value": 0.861416220664978,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowLForm",
+            "Value": -0.4892842173576355,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowLX",
+            "Value": -0.848391592502594,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowRX",
+            "Value": 0.8476332426071167,
+            "Blend": "Add"
+        },
+        {
+            "Id": "ParamBrowLY",
+            "Value": -1.0,
+            "Blend": "Add"
+        }
+    ]
+}

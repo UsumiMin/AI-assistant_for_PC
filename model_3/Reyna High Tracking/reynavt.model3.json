@@ -1,0 +1,24 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "reynavt.moc3",
+		"Textures": [
+			"reynavt.8192/texture_00.png",
+			"reynavt.8192/texture_01.png"
+		],
+		"Physics": "reynavt.physics3.json",
+		"DisplayInfo": "reynavt.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": []
+		}
+	]
+}
