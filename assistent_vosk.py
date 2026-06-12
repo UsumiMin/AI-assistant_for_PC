@@ -12,6 +12,71 @@ os.environ['VOSK_LOG_LEVEL'] = '-1'
 MODEL_NAME = "vosk-model-small-ru-0.22"
 MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
 
+PRONUNCIATION_FIXES = {
+    "повар поинт": "повер поинт",
+    "поварпоинт": "повер поинт",
+    "повара поинт": "повер поинт",
+    "повер поинт": "повер поинт",
+    "пауэр поинт": "повер поинт",
+    "павер поинт": "повер поинт",
+    "помер поинт": "повер поинт",
+    "c тим": "стим",
+    "тим": "стим",
+    "сти": "стим",
+    "эксель": "эксель",
+    "карусель": "эксель",
+    "цель": "эксель",
+    "борд": "ворд",
+    "лорд": "ворд",
+    "млрд": "ворд",
+    "ворота": "ворд",
+    "храм": "хром",
+    "хлам": "хром",
+    "хром": "хром",
+    "телеграм": "телеграмм",
+    "тилиграм": "телеграмм",
+    "телеграф": "телеграмм",
+    "телега": "телеграмм",
+    "тг": "телеграмм",
+    "презентаций": "презентацию",
+    "презентации": "презентацию",
+    "презентация": "презентацию",
+    "открытие спорт": "дискорд",
+    "ди скотт": "дискорд",
+    "скотт": "дискорд",
+    "вещей код": "вижуал студио код",
+    "вижу студио года": "вижуал студио код",
+    "вижу студио год": "вижуал студио код",
+    "вижу студию год": "вижуал студио код",
+    "вижу студио код": "вижуал студио код",
+    "ввести код": "вижуал студио код",
+    "блютус": "блютуз",
+    "блю туз": "блютуз",
+    "блутуз": "блютуз",
+    "громкость": "громкость",
+    "громкасть": "громкость",
+    "корзина": "корзину",
+    "корзину": "корзину",
+    "корзинка": "корзину",
+}
+
+def fix_recognition(text: str) -> str:
+
+    text_lower = text.lower()
+    for wrong, correct in PRONUNCIATION_FIXES.items():
+        if wrong in text_lower:
+            text_lower = text_lower.replace(wrong, correct)
+    
+    words = text_lower.split()
+    fixed_words = []
+    for word in words:
+        if word in PRONUNCIATION_FIXES:
+            fixed_words.append(PRONUNCIATION_FIXES[word])
+        else:
+            fixed_words.append(word)
+    
+    return " ".join(fixed_words)
+
 q = queue.Queue()
 
 def callback(indata, frames, time, status):
@@ -58,8 +123,15 @@ def speech_recognition_stream():
                     result = json.loads(rec.Result())
                     text = result.get("text", "").strip()
                     
-                    if text:
-                        yield text
+                    if not text:
+                        continue
+                    
+                    fixed_text = fix_recognition(text)
+                    
+                    if fixed_text != text:
+                        print(f"[Исправлено]: '{text}' -> '{fixed_text}'")
+                    
+                    yield fixed_text
                         
     except KeyboardInterrupt:
         print("\n[Система]: Остановка...")

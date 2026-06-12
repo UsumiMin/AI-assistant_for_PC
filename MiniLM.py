@@ -18,12 +18,8 @@ class AppMatcher:
             "хром": "google chrome",
             "браузер": "google chrome",
             "телеграмм": "telegram desktop",
-            "телега": "telegram desktop",
-            "тг": "telegram desktop",
             "проводник": "explorer",
             "стим": "steam",
-            "тим": "steam",
-            "сти": "steam",
             "проводник": "explorer",
             "блокнот": "notepad",
             "заметки": "notepad",
@@ -32,8 +28,11 @@ class AppMatcher:
             "эксель": "excel",
             "ворд": "word",
             "документ": "word",
+            "повер поинт": "powerpoint",
+            "презентацию": "powerpoint",
             "текст": "notepad",
-            "калькулятор": "calc.exe"
+            "яндекс": "yandex",
+            "вижуал студио код": "Visual Studio Code"
         }
 
     def find(self, user_query):
