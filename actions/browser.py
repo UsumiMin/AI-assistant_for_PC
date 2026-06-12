@@ -1,10 +1,13 @@
 import shlex
+import urllib.parse
 import winreg
 from pathlib import Path
 
 import psutil
 
 from actions.utils import activateWindow, findWindowByProcessName
+
+DEFAULT_SEARCH_ENGINE = 'https://www.google.com/search?q='
 
 
 def getBrowserNameInRegistry() -> str:
@@ -27,7 +30,12 @@ def runBrowser(target: str | None = None) -> None:
     browserWindow: int | None = findWindowByProcessName(browserExePath.name)
     if browserWindow is None:
         if target:
-            psutil.Popen([browserExePath, target])
+            psutil.Popen(
+                [
+                    browserExePath,
+                    DEFAULT_SEARCH_ENGINE + urllib.parse.quote(string=target, safe=''),
+                ],
+            )
         else:
             psutil.Popen(browserExePath)
     else:
