@@ -130,13 +130,13 @@ class MiniLMFunc:
 
         if category == "runBrowser":
             clean_text = text.lower()
-            for v in ["найди в гугле", "погугли", "найди в интернете", "найди", "открой"]:
+            for v in ["найди в гугле", "погугли", "найди в интернете", "найди", "открой", "покажи", "в гугле", "в браузере"]:
                 clean_text = clean_text.replace(v, "").strip()
             return clean_text if clean_text else None
 
         if category == "new":
             clean_text = text.lower()
-            for v in ["создай", "сделай", "измени", "поменяй", "настрой"]:
+            for v in ["создай", "сделай"]:
                 clean_text = clean_text.replace(v, "").strip()
             if clean_text is None:
                 if category == "new":

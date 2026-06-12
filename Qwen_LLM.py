@@ -57,6 +57,15 @@ class SmartModel:
         Запрос: "Открой браузер"
         Ответ: {{"action": "run", "target": "google chrome", "answer": "Запускаю ваш браузер.", "emotion": "thinking"}}
 
+        Запрос: "Открой стим"
+        Ответ: {{"action": "run", "target": "steam", "answer": "Запускаю стим, приятной игры!", "emotion": "happy"}}
+
+        Запрос: "Найди фото котов"
+        Ответ: {{"action": "runBrowser", "target": "фото котов", "answer": "Нахожу фото котиков", "emotion": "happy"}}
+
+        Запрос: "Поменяй язык на русский"
+        Ответ: {{"action": "change", "target": "язык на русский", "answer": "Меняю язык", "emotion": "processing"}}
+
         Запрос: "Как дела?"
         Ответ: {{"action": "Talk", "target": "none", "answer": "Все системы работают стабильно. Готова к вашим командам!", "emotion": "happy"}}"""
 

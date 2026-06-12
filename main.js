@@ -63,7 +63,7 @@ function createWindow() {
   });
 
   win.loadFile('index.html');
-  win.webContents.openDevTools();
+  /win.webContents.openDevTools();/
 
   win.webContents.on('did-finish-load', () => {
     win.webContents.send('apply-settings', currentSettings);
