@@ -10,15 +10,16 @@ from edge_tts import Communicate
 
 VOICE = "ru-RU-SvetlanaNeural"
 
+_tts_loop = None
+
 def _get_settings_path() -> str | None:
-    app_name = "project"  # значение "name" из package.json
+    app_name = "project"
     base = os.environ.get("APPDATA") or os.path.expanduser("~")
     candidate = os.path.join(base, app_name, "settings.json")
     return candidate if os.path.exists(candidate) else None
 
 
 def _load_volume() -> float:
-    """Читает громкость из settings.json и возвращает float 0.0–1.0."""
     path = _get_settings_path()
     if path:
         try:
@@ -28,7 +29,7 @@ def _load_volume() -> float:
             return max(0, min(int(raw), 100)) / 100.0
         except Exception:
             pass
-    return 0.8  # умолчание
+    return 0.8
 
 
 async def _generate_audio_stream(text: str) -> bytes:
@@ -41,6 +42,8 @@ async def _generate_audio_stream(text: str) -> bytes:
 
 
 def say(text: str, volume: float | None = None) -> None:
+    global _tts_loop
+
     if not text.strip():
         return
 
@@ -48,9 +51,12 @@ def say(text: str, volume: float | None = None) -> None:
         volume = _load_volume()
 
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        mp3_data = loop.run_until_complete(_generate_audio_stream(text))
+        if _tts_loop is None or _tts_loop.is_closed():
+            _tts_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(_tts_loop)
+        else:
+            asyncio.set_event_loop(_tts_loop)
+        mp3_data = _tts_loop.run_until_complete(_generate_audio_stream(text))
 
         data, samplerate = sf.read(BytesIO(mp3_data))
 

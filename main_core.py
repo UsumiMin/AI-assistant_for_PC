@@ -48,8 +48,10 @@ async def main() -> None:
                         "action": "none", 
                         "target": ""
                     }, ensure_ascii=False)
-                    
-                    await loop.run_in_executor(None, say, "Да, я вас слушаю?")
+
+                    yield response
+
+                    asyncio.create_task(loop.run_in_executor(None, say, "Да, я вас слушаю?"))
                 else:
                     logger.info('Отправка команды в MiniLM: %s', clean_cmd)
                     response = mini_lm.get_json_response(clean_cmd)
@@ -57,12 +59,26 @@ async def main() -> None:
                     try:
                         parsed_response = json.loads(response)
                         answer = parsed_response.get("answer", "")
+                        yield response
                         if answer:
-                            await loop.run_in_executor(None, say, answer)
+                            tts_task = asyncio.create_task(
+                                loop.run_in_executor(None, say, answer)
+                            )
+                        
+                        action = parsed_response.get('action')
+                        if action and action != 'none':
+                            dispatcher.dispatch(
+                                action,
+                                kwargs={'target': parsed_response.get('target', '')},
+                            )
+                        
+                        if answer:
+                            await tts_task
+                            
                     except Exception as e:
-                        logger.error('Не удалось озвучить ответ: %s', e)
+                        logger.error('Ошибка: %s', e)
                 
-                yield response
+                
                 logger.info('Ответ отправлен в интерфейс:\n%s', response)
 
                 try:
