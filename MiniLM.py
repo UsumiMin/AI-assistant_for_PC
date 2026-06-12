@@ -32,7 +32,7 @@ class AppMatcher:
             "презентацию": "powerpoint",
             "текст": "notepad",
             "яндекс": "yandex",
-            "вижуал студио код": "Visual Studio Code"
+            "вижуал студио код": "visual studio code"
         }
 
     def find(self, user_query):

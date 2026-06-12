@@ -56,6 +56,9 @@ class SmartModel:
 
         Запрос: "Открой браузер"
         Ответ: {{"action": "run", "target": "google chrome", "answer": "Запускаю ваш браузер.", "emotion": "thinking"}}
+        
+        Запрос: "Открой вижуал студио код"
+        Ответ: {{"action": "run", "target": "visual studio code", "answer": "Включаю Visual Studio Code.", "emotion": "thinking"}}
 
         Запрос: "Открой стим"
         Ответ: {{"action": "run", "target": "steam", "answer": "Запускаю стим, приятной игры!", "emotion": "happy"}}
