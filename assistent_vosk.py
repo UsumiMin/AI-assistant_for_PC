@@ -1,104 +1,71 @@
-import sys
-import queue
-import json
 import os
-import zipfile
+import sys
+import json
+import queue
 import urllib.request
+import zipfile
 import sounddevice as sd
-from vosk import Model, KaldiRecognizer, SetLogLevel
-from tts import say 
-from MiniLM import MiniLMFunc
+from vosk import Model, KaldiRecognizer
 
-SetLogLevel(-1)
+os.environ['VOSK_LOG_LEVEL'] = '-1'
 
-def progress_callback(block_num, block_size, total_size):
-    downloaded = block_num * block_size
-    if total_size > 0:
-        percent = min(int(downloaded * 100 / total_size), 100)
-        print(f"\r[Система]: Скачивание модели: {percent}%...", end="", flush=True)
+MODEL_NAME = "vosk-model-small-ru-0.22"
+MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
 
-def download_model():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_name = "vosk-model-small-ru-0.22"
-    model_path = os.path.join(script_dir, model_name)
-    
-    if os.path.exists(model_path):
-        return model_path
-    
-    print("\n[Система]: Локальная модель не найдена. Начинаю скачивание...")
-    url = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
-    zip_path = os.path.join(script_dir, "model.zip")
-    
-    try:
-        opener = urllib.request.build_opener()
-        opener.addheaders = [('User-Agent', 'Mozilla/5.0')]
-        urllib.request.install_opener(opener)
-        urllib.request.urlretrieve(url, zip_path, reporthook=progress_callback)
+q = queue.Queue()
+
+def callback(indata, frames, time, status):
+    if status:
+        print(status, file=sys.stderr)
+    q.put(bytes(indata))
+
+def check_and_download_model():
+    if not os.path.exists(MODEL_NAME):
+        print(f"\n[Установка]: Модель Vosk не найдена. Скачиваю...")
+        zip_path = f"{MODEL_NAME}.zip"
         
-        print("\n[Система]: Распаковка...")
-        with zipfile.ZipFile(zip_path, 'r') as f:
-            f.extractall(script_dir)
-        if os.path.exists(zip_path):
+        try:
+            urllib.request.urlretrieve(MODEL_URL, zip_path)
+            print("[Установка]: Скачивание завершено! Распаковываю...")
+            
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(".")
+                
             os.remove(zip_path)
-    except Exception as e:
-        print(f"\n[Ошибка]: Не удалось скачать модель ({e})")
-        sys.exit(1)
-    return model_path
+            print("[Установка]: Модель успешно установлена!\n")
+        except Exception as e:
+            print(f"[Ошибка]: Не удалось скачать модель. {e}")
+            sys.exit(1)
+    else:
+        print(f"[Загрузка]: Модель '{MODEL_NAME}' уже установлена.")
 
 def speech_recognition_stream():
-    model_path = download_model()
-    model = Model(model_path)
+    check_and_download_model()
     
-    device_info = sd.query_devices(None, 'input')
-    samplerate = int(device_info['default_samplerate'])
+    print("[Загрузка]: Запуск распознавания речи (Vosk)...")
+    model = Model(MODEL_NAME)
+    rec = KaldiRecognizer(model, 16000)
     
-    rec = KaldiRecognizer(model, samplerate)
-    q = queue.Queue()
-    
-    def callback(indata, frames, time, status):
-        q.put(bytes(indata))
-
-    with sd.RawInputStream(samplerate=samplerate, blocksize=8000, dtype='int16', 
-                           channels=1, callback=callback):
-        print("\n[Система]: Слушаю...")
-        while True:
-            data = q.get()
-            if rec.AcceptWaveform(data):
-                res = json.loads(rec.Result())
-                if 'text' in res and res['text']:
-                    yield res['text']
-
-def main():
-    assistant = MiniLMFunc()
-    say("Система запущена. Я слушаю.")
-    print("[Система]: Ожидаю обращения к 'Афина'...")
+    print("[Система]: Слушаю... (скажите 'Афина' для активации)")
     
     try:
-        for final_text in speech_recognition_stream():
-            text_lower = final_text.lower().strip()
-            print(f"[Услышано]: '{text_lower}'")
-
-            activation_keys = ["афина", "афину", "афине"]
-            is_activated = any(key in text_lower for key in activation_keys)
-            
-            if is_activated:
-                found_key = next(key for key in activation_keys if key in text_lower)
-                clean_cmd = text_lower.replace(found_key, "").strip()
+        with sd.RawInputStream(samplerate=16000, blocksize=8000, device=None, 
+                               dtype='int16', channels=1, callback=callback):
+            while True:
+                data = q.get()
                 
-                print(f"[Распознано обращение к Афина]: '{clean_cmd}'")
-                
-                if clean_cmd:
-                    json_str = assistant.get_json_response(clean_cmd)
-                    data = json.loads(json_str)
+                if rec.AcceptWaveform(data):
+                    result = json.loads(rec.Result())
+                    text = result.get("text", "").strip()
                     
-                    answer = data.get("answer", "Слушаю.")
-                    print(f"[Ответ]: {answer}")
-                    say(answer)
-                else:
-                    say("Да, я вас слушаю?")
-                
+                    if text:
+                        yield text
+                        
+    except KeyboardInterrupt:
+        print("\n[Система]: Остановка...")
     except Exception as e:
-        print(f"[Критическая ошибка]: {e}")
+        print(f"\n[Ошибка]: {e}")
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    for text in speech_recognition_stream():
+        print(f"Распознано: {text}")
