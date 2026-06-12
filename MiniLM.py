@@ -75,7 +75,7 @@ class MiniLMFunc:
         self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
         self.app_matcher = AppMatcher()
         self.smart_model = SmartModel(self.app_matcher.apps_list)
-        self.ALLOWED_ACTIONS = {"run", "emptyRecycleBin", "runBrowser", "New", "Change"}
+        self.ALLOWED_ACTIONS = {"run", "emptyRecycleBin", "runBrowser", "new", "change"}
         self.taxonomy = {
             "emptyRecycleBin": [
                 "очисти корзину", "удали временные файлы", "почисти кэш",
@@ -86,18 +86,18 @@ class MiniLMFunc:
                 "запусти игру", "открой блокнот", "запусти приложение"
             ],
             "runBrowser": [
-                "найди в гугле", "перейди на сайт", "погугли как готовить",
+                "найди в гугле", "перейди на сайт", "погугли как готовить", "найди",
                 "найди рецепт в интернете", "открой сайт", "покажи курсы", "найди расписание"
             ],
-            "New": [
+            "new": [
                 "создай текстовый документ", "сделай новую папку", "создай таблицу"
                 "создай файл", "сделай заметку", "создай ворд", "создай презентацию"
             ],
-            "Change": [
+            "change": [
                 "сделай звук тише", "Увеличь громкость", "измени яркость", "поменяй обои",
                 "включи блютуз", "включи ночной режим", "смени тему", "настрой сеть", "смени язык"
             ],
-            "Talk": [
+            "talk": [
                 "как дела", "ты милая", "привет", "расскажи историю",
                 "кто тебя создал", "поговори со мной", "спой песню"
             ]
@@ -108,6 +108,20 @@ class MiniLMFunc:
         for category, phrases in self.taxonomy.items():
             self.category_embeddings[category] = self.model.encode(phrases, convert_to_tensor=True)
 
+    def _validate_app_exists(self, app_name: str) -> bool:
+        if not app_name:
+            return False
+        
+        app_name_lower = app_name.lower()
+        
+        if app_name_lower in self.app_matcher.apps_list:
+            return True
+        
+        for app in self.app_matcher.apps_list:
+            if app_name_lower in app or app in app_name_lower:
+                return True
+        
+        return False
 
     def _extract_target(self, text, category):
         if category == "run":
@@ -120,12 +134,22 @@ class MiniLMFunc:
                 clean_text = clean_text.replace(v, "").strip()
             return clean_text if clean_text else None
 
-        if category in ["New", "Change"]:
+        if category == "new":
             clean_text = text.lower()
             for v in ["создай", "сделай", "измени", "поменяй", "настрой"]:
                 clean_text = clean_text.replace(v, "").strip()
+            if clean_text is None:
+                if category == "new":
+                    clean_text = "файл"
+            clean_text += ".txt"
             return clean_text if clean_text else None
-
+        
+        if category == "change":
+            clean_text = text.lower()
+            for v in ["сделай", "измени", "поменяй", "настрой"]:
+                clean_text = clean_text.replace(v, "").strip()
+            target, confidence = self.predict_change_command(clean_text)
+            return target if target else None
         return None
 
     def predict(self, text):
@@ -136,21 +160,53 @@ class MiniLMFunc:
             results[category] = torch.max(scores).item()
         best_category = max(results, key=results.get)
         return best_category, results[best_category]
+    
+    def predict_change_command(self, text):
+        """Определяет системную команду (громкость, язык, блютуз)"""
+        system_commands = [
+            'язык на английский',
+            'язык на русский', 
+            'увеличь громкость',
+            'уменьши громкость',
+            'включи блютуз',
+            'выключи блютуз'
+        ]
+        text_emb = self.model.encode(text, convert_to_tensor=True)
+        command_embs = self.model.encode(system_commands, convert_to_tensor=True)
+        similarities = util.cos_sim(text_emb, command_embs)[0]
+        
+        best_idx = torch.argmax(similarities).item()
+        best_command = system_commands[best_idx]
+        confidence = similarities[best_idx].item()
+        
+        return best_command, confidence
 
     def get_json_response(self, text):
         category, confidence = self.predict(text)
-        if (confidence < 0.6 or category == "Talk") and self.smart_model:
+        if (confidence < 0.6 or category == "talk") and self.smart_model:
             print(f"Низкая уверенность ({confidence:.2f}) или разговор. Обращаюсь к Qwen...")
             try:
                 smart_res = self.smart_model.ask(text)
                 if smart_res and isinstance(smart_res, dict):
-                    return json.dumps({
+                    answer = {
                         "action": smart_res.get("action"),
                         "target": smart_res.get("target"),
                         "answer": smart_res.get("answer"),
                         "emotion": smart_res.get("emotion"),
                         "source": "smart_llm"
-                    }, ensure_ascii=False, indent=4)
+                    }
+                    if answer["action"] == "run":
+                        target = answer.get("target")
+                        if target and not self._validate_app_exists(target):
+                            answer = {
+                                "action": "talk",
+                                "target": None,
+                                "answer": f"Я не смогла найти программу '{target}'. Возможно, она не установлена или я не знаю такого названия. Попробуйте уточнить.",
+                                "emotion": "sad",
+                                "confidence": confidence,
+                                "source": "minilm"
+                            }
+                    return json.dumps(answer, ensure_ascii=False, indent=4)
             except Exception as e:
                 print(f"Ошибка при вызове SmartModel: {e}. Откат к MiniLM.")
             finally:
@@ -160,9 +216,9 @@ class MiniLMFunc:
             "emptyRecycleBin": ("Очищаю корзину.", "processing"),
             "run": ("Секунду, сейчас запущу...", "happy"),
             "runBrowser": ("Открываю браузер, ищу для вас информацию.", "thinking"),
-            "New": ("Без проблем, сейчас всё создам.", "processing"),
-            "Change": ("Минутку, меняю настройки.", "processing"),
-            "Talk": ("Простите, я немного запуталась, повторите пожалуйста", "happy")
+            "new": ("Без проблем, сейчас всё создам.", "processing"),
+            "change": ("Минутку, меняю настройки.", "processing"),
+            "talk": ("Простите, я немного запуталась, повторите пожалуйста", "happy")
         }
 
         ans_text, emotion = responses.get(category, ("Я вас не совсем поняла.", "sad"))
@@ -170,7 +226,7 @@ class MiniLMFunc:
         final_action = category if category in self.ALLOWED_ACTIONS else None
         result = {
             "action": final_action,
-            "target": target if category in ["run","New","Change"] else None,
+            "target": target if category in ["run","new","change", "runBrowser"] else None,
             "answer": ans_text,
             "emotion": emotion,
             "confidence": round(confidence, 2),

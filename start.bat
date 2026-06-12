@@ -32,6 +32,7 @@ echo [5/6] Installing Python dependencies (PIP)...
 call venv\Scripts\activate
 pip install -r requirements_tmp.txt
 pip install pywin32 vosk sentence_transformers
+pip install winsdk-1.0.0b10-cp312-cp312-win_amd64.whl
 if exist requirements_tmp.txt del /f /q requirements_tmp.txt
 
 :: --- БЛОК 3: УМНАЯ СБОРКА И ЖЕСТКАЯ ИНЖЕКЦИЯ ELECTRON ---
