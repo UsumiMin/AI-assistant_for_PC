@@ -2,39 +2,35 @@
 bluetooth_control.py
 ====================
 
-Модуль для управления состоянием Bluetooth-радио в Windows через WinRT-API
-``Windows.Devices.Radios``.
-
-Это «мягкое» переключение радио — точно такое же, как тумблер Bluetooth в
-«Параметрах» Windows / Центре уведомлений. Права администратора НЕ требуются.
+Управление состоянием Bluetooth-радио в Windows через WinRT-API
+``Windows.Devices.Radios``. Мягкое переключение радио, как тумблер в
+«Параметрах» Windows. Права администратора не требуются.
 
 Зависимости
 -----------
     pip install winsdk      # WinRT-проекция для Python. Можно заменить на winrt.
 
-Использование из командной строки
----------------------------------
-    python bluetooth_control.py status
-    python bluetooth_control.py on
-    python bluetooth_control.py off
-    python bluetooth_control.py toggle
-
-Использование как модуля
-------------------------
-    import bluetooth_control as bt
+API
+---
+    import bluetooth as bt
 
     bt.set_bluetooth(True)        # включить
     bt.set_bluetooth(False)       # выключить
+    bt.enable_bluetooth()
+    bt.disable_bluetooth()
     bt.toggle_bluetooth()         # переключить
-    print(bt.get_bluetooth())     # True / False / None (адаптер не найден)
+    bt.get_bluetooth()            # True / False / None (адаптер не найден)
 
-Примечание: модуль предназначен для Windows.
+CLI
+---
+    python bluetooth_control.py status   # on | off | toggle | status
 """
 
 from __future__ import annotations
 
 import asyncio
 import sys
+import threading
 
 __all__ = [
     'set_bluetooth',
@@ -75,10 +71,9 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# Асинхронные операции WinRT
+# Внутренние асинхронные операции WinRT
 # ---------------------------------------------------------------------------
-async def _get_bluetooth_radios():
-    """Запрашивает доступ и возвращает список Bluetooth-радио."""
+async def _get_radios():
     access = await Radio.request_access_async()
     if access != RadioAccessStatus.ALLOWED:
         raise BluetoothError(f'Доступ к управлению радио не разрешён (статус: {access}).')
@@ -86,9 +81,9 @@ async def _get_bluetooth_radios():
     return [r for r in radios if r.kind == RadioKind.BLUETOOTH]
 
 
-async def _set_async(turn_on: bool) -> bool:
-    target = RadioState.ON if turn_on else RadioState.OFF
-    radios = await _get_bluetooth_radios()
+async def _set(enabled: bool) -> bool:
+    target = RadioState.ON if enabled else RadioState.OFF
+    radios = await _get_radios()
     if not radios:
         return False
     for radio in radios:
@@ -96,59 +91,83 @@ async def _set_async(turn_on: bool) -> bool:
     return True
 
 
-async def _get_async():
-    radios = await _get_bluetooth_radios()
+async def _get():
+    radios = await _get_radios()
     if not radios:
         return None
     return any(r.state == RadioState.ON for r in radios)
 
 
-def _run(coro):
-    """Синхронно выполняет корутину WinRT."""
-    return asyncio.run(coro)
+async def _toggle() -> bool:
+    current = await _get()
+    if current is None:
+        raise BluetoothError('Bluetooth-адаптер не найден.')
+    return await _set(not current)
 
 
 # ---------------------------------------------------------------------------
-# Публичный интерфейс
+# Синхронный запуск корутины (безопасный в любом контексте)
+# ---------------------------------------------------------------------------
+def _run(coro):
+    """
+    Блокирующе выполняет корутину и возвращает результат.
+
+    Если активного цикла событий нет (обычный синхронный код) — используется
+    ``asyncio.run``. Если код вызван из уже работающего цикла, ``asyncio.run``
+    применять нельзя, поэтому корутина выполняется в отдельном потоке с
+    собственным циклом — так синхронный вызов не конфликтует с этим циклом.
+    """
+    result, error = None, None
+
+    def _worker() -> None:
+        nonlocal result, error
+        try:
+            result = asyncio.run(coro)
+        except BaseException as exc:  # пробрасываем в вызывающий поток
+            error = exc
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+    thread.join()
+
+    if error is not None:
+        raise error
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Публичный синхронный API
 # ---------------------------------------------------------------------------
 def set_bluetooth(enabled: bool) -> bool:
     """
     Включает (``enabled=True``) или выключает (``enabled=False``) Bluetooth.
-    Возвращает True при успехе, False — если Bluetooth-адаптер не найден.
+    Возвращает True при успехе, False — если адаптер не найден.
     """
-    return _run(_set_async(enabled))
+    return _run(_set(enabled))
 
 
 def get_bluetooth():
-    """
-    Текущее состояние Bluetooth:
-        True  — включён,
-        False — выключен,
-        None  — адаптер не найден.
-    """
-    return _run(_get_async())
+    """Состояние Bluetooth: True — включён, False — выключен, None — не найден."""
+    return _run(_get())
 
 
 def enable_bluetooth() -> bool:
     """Включить Bluetooth."""
-    return set_bluetooth(True)
+    return _run(_set(True))
 
 
 def disable_bluetooth() -> bool:
     """Выключить Bluetooth."""
-    return set_bluetooth(False)
+    return _run(_set(False))
 
 
 def toggle_bluetooth() -> bool:
     """Переключить Bluetooth в противоположное состояние."""
-    current = get_bluetooth()
-    if current is None:
-        raise BluetoothError('Bluetooth-адаптер не найден.')
-    return set_bluetooth(not current)
+    return _run(_toggle())
 
 
 # ---------------------------------------------------------------------------
-# Интерфейс командной строки
+# CLI
 # ---------------------------------------------------------------------------
 def _main(argv=None) -> int:
     import argparse
