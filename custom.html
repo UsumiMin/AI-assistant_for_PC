@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Кастомизация</title>
+  <style>
+    body {
+      margin: 20px; 
+      padding: 20px;
+      font-family: sans-serif; 
+      background: #f4f1f8;
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: flex-start; 
+      min-height: 100vh; 
+      min-width: 400px;
+      padding: 30px;
+      overflow: hidden;
+      box-sizing: border-box; 
+      color: #233365;
+    }
+
+    h1 { 
+      margin-bottom: 30px; 
+    }
+    
+.grid {
+      display: flex;
+      gap: 25px;
+      margin-bottom: 40px;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .card {
+      background: white; 
+      border: 3px solid transparent; 
+      border-radius: 12px;
+      padding: 20px; 
+      width: 140px; 
+      text-align: center; 
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(28, 39, 76, 0.08); 
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover { 
+      transform: translateY(-3px); 
+    }
+
+    .card.active { 
+      border-color: #C4C0F6; 
+      background: #fdf6fd; 
+    }
+
+    .avatar-icon { 
+      margin-bottom: 10px; 
+      width: 130px;
+      height: 150px;
+      object-fit: cover; 
+      border-radius: 8px;
+    }
+
+    .avatar-title { 
+      font-weight: bold; 
+      font-size: 16px; 
+    }
+
+    .btn-back {
+      padding: 10px 26px; 
+      background: #c4c0f6; 
+      border: none; 
+      border-radius: 12px;
+      color: #233365; 
+      font-weight: bold; 
+      cursor: pointer; 
+      font-size: 14px;
+      font-weight: 700;
+      transition: transform 0.2s;
+    }
+
+    .btn-back:hover { 
+      transform: translateY(-2px); 
+      filter: brightness(1.05); 
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Выбор активного аватара</h1>
+
+  <div class="grid">
+    <div class="card" id="card-avatar.js" onclick="selectAvatar('avatar.js')">
+      <img class="avatar-icon" src="./sources/avatar_img/avatar.png" alt="">
+      <div class="avatar-title">Базовый</div>
+    </div>
+    <div class="card" id="card-avatar_2.js" onclick="selectAvatar('avatar_2.js')">
+      <img class="avatar-icon" src="./sources/avatar_img/avatar_2.png" alt="">
+      <div class="avatar-title">Базовый</div>
+    </div>
+    <div class="card" id="card-avatar_3.js" onclick="selectAvatar('avatar_3.js')">
+      <img class="avatar-icon" src="./sources/avatar_img/avatar_3.png" alt="">
+      <div class="avatar-title">Базовый</div>
+    </div>
+  </div>
+
+  <button class="btn-back" onclick="window.close()">Назад</button>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    async function init() {
+      const settings = await ipcRenderer.invoke('get-settings');
+      const activeScript = settings.avatarScript || 'avatar.js';
+      document.getElementById(`card-${activeScript}`).classList.add('active');
+    }
+
+    function selectAvatar(scriptName) {
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+      document.getElementById(`card-${scriptName}`).classList.add('active');
+      
+      ipcRenderer.send('change-avatar-script', scriptName);
+    }
+
+    init();
+
+  </script>
+</body>
+</html>

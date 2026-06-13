@@ -1,0 +1,27 @@
+[project]
+name = "ai-assistant-for-pc"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "accelerate>=1.13.0",
+    "llama-cpp-python>=0.3.24",
+    "psutil>=7.2.2",
+    "pycaw>=20251023",
+    "pywin32>=311",
+    "rapidfuzz>=3.14.5",
+    "sentence-transformers>=5.5.0",
+    "sounddevice>=0.5.5",
+    "transformers>=5.8.1",
+    "transliterate>=1.10.2",
+    "vosk>=0.3.45",
+    "websockets>=16.0",
+    "winsdk>=1.0.0b10",
+]
+
+[dependency-groups]
+dev = [
+    "types-psutil>=7.2.2.20260508",
+    "types-pywin32>=311.0.0.20260508",
+]

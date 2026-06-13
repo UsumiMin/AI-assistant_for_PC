@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+vosk-model*/
+model.zip
 __pycache__/
 *.py[codz]
 *$py.class
@@ -216,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+qwen_model/
+minilm_model/
+node_modules/
+venv/
+__pycache__/

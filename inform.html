@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Лог действий</title>
+  <style>
+    body {
+      margin: 0; 
+      font-family: sans-serif; 
+      background: #f4f1f8;
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      height: 100vh;
+    }
+
+    h1 { 
+      color: #233365; 
+      margin-top: 20px;
+      margin-left: 30px;
+      font-size: 26px;
+    }
+
+    h2 { 
+      color: #552875; 
+      margin-top: 30px;
+      margin-left: 30px;
+      font-size: 18px;
+    }
+
+    .btn-back {
+      padding: 10px 26px; 
+      background: #c4c0f6; 
+      border: none; 
+      border-radius: 12px;
+      color: #233365; 
+      font-weight: bold; 
+      cursor: pointer; 
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 15px;
+      transition: transform 0.2s;
+    }
+    .btn-back:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  </style>
+</head>
+<body>
+  <h1>Афина спешит на помощь! Просто обратитесь к ней по имени, и она выполнит команду.</h1>
+  <h2>Примеры команды:<br>
+Афина, очисти корзину<br>
+Афина, создай текстовый файл<br>
+
+Афина, открой телеграмм<br>
+Афина, включи видеоплеер<br>
+
+Афина, найди в интернете рецепт борща<br>
+Афина, погугли как сварить рис<br>
+
+Афина, увеличь громкость<br>
+Афина, включи Bluetooth</h2>
+  <button class="btn-back" onclick="window.close()">Назад</button>
+</body>
+</html>
