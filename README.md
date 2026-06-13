@@ -37,7 +37,7 @@ git clone https://github.com/your/ai-assistant
 
 cd ai-assistant
 
-По желанию можно заранее загрузить архив с моделями и распакавать его в папку:
+По желанию можно заранее загрузить архив с моделями и распаковать его в папку:
 
 https://drive.google.com/drive/folders/1iSkYso06v2If6uDZ6PD9CL4KOviUDoPZ?usp=sharing
 
