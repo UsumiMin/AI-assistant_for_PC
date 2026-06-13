@@ -6,6 +6,8 @@ from apps_list_temp import get_apps
 import json
 from Qwen_LLM import SmartModel
 import logging
+import os
+import sys
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
@@ -71,7 +73,16 @@ class AppMatcher:
 
 class MiniLMFunc:
     def __init__(self):
-        self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        if getattr(sys, 'frozen', False):
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            
+        # Указываем путь к локальной папке MiniLM
+        minilm_path = os.path.join(base_path, 'minilm_model')
+
+        # Загружаем модель из локальной папки
+        self.model = SentenceTransformer(minilm_path)
         self.app_matcher = AppMatcher()
         self.smart_model = SmartModel(self.app_matcher.apps_list)
         self.ALLOWED_ACTIONS = {"run", "emptyRecycleBin", "runBrowser", "new", "change"}
