@@ -110,7 +110,7 @@ class SmartModel:
             self.model = Llama(
                 model_path=self.model_path,
                 n_ctx=4096,
-                n_threads=8,
+                n_threads=4,
                 verbose=False,
             temperature=0.7
             )

@@ -51,7 +51,9 @@ async def main() -> None:
 
                     yield response
 
-                    asyncio.create_task(loop.run_in_executor(None, say, "Да, я вас слушаю?"))
+                    await loop.run_in_executor(None, say, "Да, я вас слушаю?")
+                    
+                    continue
                 else:
                     logger.info('Отправка команды в MiniLM: %s', clean_cmd)
                     response = mini_lm.get_json_response(clean_cmd)
@@ -60,11 +62,9 @@ async def main() -> None:
                         parsed_response = json.loads(response)
                         answer = parsed_response.get("answer", "")
                         yield response
+                        tts_future = None
                         if answer:
-                            tts_task = asyncio.create_task(
-                                loop.run_in_executor(None, say, answer)
-                            )
-                        
+                            tts_future = loop.run_in_executor(None, say, answer)
                         action = parsed_response.get('action')
                         if action and action != 'none':
                             dispatcher.dispatch(
@@ -72,24 +72,15 @@ async def main() -> None:
                                 kwargs={'target': parsed_response.get('target', '')},
                             )
                         
-                        if answer:
-                            await tts_task
-                            
+                        if tts_future:
+                            await tts_future
+
                     except Exception as e:
                         logger.error('Ошибка: %s', e)
                 
                 
                 logger.info('Ответ отправлен в интерфейс:\n%s', response)
 
-                try:
-                    parsed_response = json.loads(response)
-                    if parsed_response.get('action') and parsed_response['action'] != 'none':
-                        dispatcher.dispatch(
-                            parsed_response['action'],
-                            kwargs={'target': parsed_response.get('target', '')},
-                        )
-                except (ValueError, KeyError):
-                    logger.exception('Ошибка при выполнении системного действия')
         return MessageSender(connection, message_gen())
 
     ws_server = await websockets.serve(

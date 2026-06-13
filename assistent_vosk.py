@@ -1,13 +1,16 @@
 import os
 import sys
+
+os.environ['VOSK_LOG_LEVEL'] = '-1'
+
 import json
 import queue
 import urllib.request
 import zipfile
 import sounddevice as sd
-from vosk import Model, KaldiRecognizer
+from vosk import Model, KaldiRecognizer, SetLogLevel
 
-os.environ['VOSK_LOG_LEVEL'] = '-1'
+SetLogLevel(-1)
 
 MODEL_NAME = "vosk-model-small-ru-0.22"
 MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
